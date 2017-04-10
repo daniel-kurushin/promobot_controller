@@ -1,5 +1,4 @@
 #include <Wire.h>
-
 #include <GY_85.h>
 
 #define M1AIN 7
@@ -34,15 +33,15 @@ void setup() {
   for (int i=0; i < 10; i++) {
     delay(300);
     new_z = GY85.gyro_z( GY85.readGyro() );
-    
+
 //    Serial.println(new_z);
-    
+
     delta += new_z - old_z;
   }
 //  Serial.println("###");
-  delta /= 10; 
+  delta /= 10;
 //  Serial.println(delta);
-    
+
   pinMode(M1AIN,OUTPUT);
   pinMode(M1BIN,OUTPUT);
   pinMode(M1PWM,OUTPUT);
@@ -63,10 +62,10 @@ int rVal = 0;
 void loop() {
   pure_gz=GY85.gyro_z( GY85.readGyro() ) * dt;
   gz += pure_gz - delta*dt*0.6;
-  
+
 //  lValPure = 0;
 //  for (int i = 0; i < 8; i++) {
-//    lValPure += analogRead(A0); 
+//    lValPure += analogRead(A0);
 //  }
 //  lVal = (int)(lValPure / 8) - 512;
 //  Serial.println(lVal);
@@ -78,16 +77,16 @@ void loop() {
   } else if (lVal < 0) {
     digitalWrite(M1BEN, HIGH);
     digitalWrite(M1AIN, LOW);
-    digitalWrite(M1BIN, HIGH); 
+    digitalWrite(M1BIN, HIGH);
   } else if (lVal == 0) {
     digitalWrite(M1AEN, LOW);
     digitalWrite(M1BEN, LOW);
   }
   analogWrite(M1PWM, (int) abs(lVal/2));
-  
+
 //  rValPure = 0;
 //  for (int i = 0; i < 8; i++) {
-//    rValPure += analogRead(A1); 
+//    rValPure += analogRead(A1);
 //  }
 //  rVal = (int)(rValPure / 8) - 512;
 //  Serial.println(rVal);
@@ -99,7 +98,7 @@ void loop() {
   } else if (rVal < 0) {
     digitalWrite(M2BEN, HIGH);
     digitalWrite(M2AIN, LOW);
-    digitalWrite(M2BIN, HIGH); 
+    digitalWrite(M2BIN, HIGH);
   } else if (rVal == 0) {
     digitalWrite(M2AEN, LOW);
     digitalWrite(M2BEN, LOW);
@@ -109,6 +108,6 @@ void loop() {
   Serial.println((int) (abs(rVal/2) + gz));
   Serial.println(gz);
   Serial.println(delta*dt);
-  
+
   delay(dt * 1000);
 }
