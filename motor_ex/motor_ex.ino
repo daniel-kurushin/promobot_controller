@@ -1,5 +1,6 @@
 #include <Wire.h>
 #include <GY_85.h>
+#include <math.h>
 
 #define M1AIN 7
 #define M1BIN 6
@@ -15,15 +16,47 @@
 GY_85 GY85;
 float gz = 0;
 float pure_gz = 0;
-float dt = 0.01;
+float dt = 0.1;
 float delta = 0.0;
 float old_z = 0;
 float new_z = 0;
+uint16_t tme = 0;
+
+void lft_stop()
+{
+  digitalWrite(M1AEN, LOW);
+  digitalWrite(M1BEN, LOW);
+}
+
+void rgt_stop()
+{
+  digitalWrite(M2AEN, LOW);
+  digitalWrite(M2BEN, LOW);
+}
+
+void lft_frw(float spd) //TODO ; m/s!!!
+{
+  digitalWrite(M1AEN, HIGH);
+  digitalWrite(M1AIN, HIGH);
+  digitalWrite(M1BIN, LOW);
+  
+  analogWrite(M1PWM, (int) max(min(spd,255),0));
+}
+
+void rgt_frw(float spd)
+{
+  digitalWrite(M2AEN, HIGH);
+  digitalWrite(M2AIN, HIGH);
+  digitalWrite(M2BIN, LOW);
+  
+  analogWrite(M2PWM, (int) max(min(spd,255),0));
+}
 
 void setup() {
   Wire.begin();
   Serial.begin(9600);
   GY85.init();
+  
   old_z = GY85.gyro_z( GY85.readGyro() );
   for (int i=0; i < 10; i++) {
     delay(300);
@@ -31,7 +64,7 @@ void setup() {
     delta += new_z - old_z;
   }
   delta /= 10;
- 
+  
   pinMode(M1AIN, OUTPUT);
   pinMode(M1BIN, OUTPUT);
   pinMode(M1PWM, OUTPUT);
@@ -48,50 +81,21 @@ void setup() {
 int lVal = 0;
 int rVal = 0;
 
-//void nothing()
-//}
-//  lVal = 256;
-//  if (lVal > 0) {
-//    digitalWrite(M1AEN, HIGH);
-//    digitalWrite(M1AIN, HIGH);
-//    digitalWrite(M1BIN, LOW);
-//  } else if (lVal < 0) {
-//    digitalWrite(M1BEN, HIGH);
-//    digitalWrite(M1AIN, LOW);
-//    digitalWrite(M1BIN, HIGH);
-//  } else if (lVal == 0) {
-//    digitalWrite(M1AEN, LOW);
-//    digitalWrite(M1BEN, LOW);
-//  }
-//
-//
-//  analogWrite(M1PWM, (int) abs(lVal/2));
-//
-//  rVal = 256;
-//  if (rVal > 0) {
-//    digitalWrite(M2AEN, HIGH);
-//    digitalWrite(M2AIN, HIGH);
-//    digitalWrite(M2BIN, LOW);
-//  } else if (rVal < 0) {
-//    digitalWrite(M2BEN, HIGH);
-//    digitalWrite(M2AIN, LOW);
-//    digitalWrite(M2BIN, HIGH);
-//  } else if (rVal == 0) {
-//    digitalWrite(M2AEN, LOW);
-//    digitalWrite(M2BEN, LOW);
-//  }
-//}
-
 void loop() {
   pure_gz = GY85.gyro_z( GY85.readGyro() ) * dt;
   gz += pure_gz - delta * dt;
 
-  //analogWrite(M2PWM, (int) (abs(rVal/2) + gz));
+  lft_frw(128 + atan(gz));
+  rgt_frw(128 - atan(gz));
 
-  Serial.println(abs(lVal/2));
-  Serial.println((int) (abs(rVal/2) + gz));
-  Serial.println(gz);
-  Serial.println(delta*dt);
-
+  if(++tme > 10)
+  {
+    tme = 0;
+    Serial.print("\tpure_gz "); Serial.print(pure_gz);
+    Serial.print("\tgz ");      Serial.print(gz);
+    Serial.println();
+  }
+  
   delay(dt * 1000);
 }
+
