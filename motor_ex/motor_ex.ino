@@ -22,25 +22,15 @@ float new_z = 0;
 
 void setup() {
   Wire.begin();
-  delay(10);
   Serial.begin(9600);
-  delay(10);
   GY85.init();
-  delay(10);
   old_z = GY85.gyro_z( GY85.readGyro() );
-//  Serial.println(old_z);
-//  Serial.println("###");
   for (int i=0; i < 10; i++) {
     delay(300);
     new_z = GY85.gyro_z( GY85.readGyro() );
-
-//    Serial.println(new_z);
-
     delta += new_z - old_z;
   }
-//  Serial.println("###");
   delta /= 10;
-//  Serial.println(delta);
 
   pinMode(M1AIN,OUTPUT);
   pinMode(M1BIN,OUTPUT);
