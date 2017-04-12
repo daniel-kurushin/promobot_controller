@@ -88,9 +88,6 @@ void setup()
   pinMode(M2BEN, OUTPUT);
 }
 
-int lVal = 0;
-int rVal = 0;
-
 void loop()
 {
   pure_gz = GY85.gyro_z(GY85.readGyro());
