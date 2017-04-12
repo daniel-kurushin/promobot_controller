@@ -16,11 +16,16 @@
 GY_85 GY85;
 float gz = 0;
 float pure_gz = 0;
-float dt = 0.1;
+float dt = 0.01;
 float delta = 0.0;
 float old_z = 0;
 float new_z = 0;
+float Kp = 10;
 uint16_t tme = 0;
+uint8_t lft_pwm = 0;
+uint8_t rgt_pwm = 0;
+
+float trg_spd = 100;
 
 void lft_stop()
 {
@@ -40,7 +45,8 @@ void lft_frw(float spd) //TODO ; m/s!!!
   digitalWrite(M1AIN, HIGH);
   digitalWrite(M1BIN, LOW);
   
-  analogWrite(M1PWM, (int) max(min(spd,255),0));
+  lft_pwm = (int) max(min(spd,255),0);
+  analogWrite(M1PWM, lft_pwm);
 }
 
 void rgt_frw(float spd)
@@ -49,7 +55,8 @@ void rgt_frw(float spd)
   digitalWrite(M2AIN, HIGH);
   digitalWrite(M2BIN, LOW);
   
-  analogWrite(M2PWM, (int) max(min(spd,255),0));
+  rgt_pwm = (int) max(min(spd,255),0);
+  analogWrite(M2PWM, rgt_pwm);
 }
 
 void setup() {
@@ -85,14 +92,16 @@ void loop() {
   pure_gz = GY85.gyro_z( GY85.readGyro() ) * dt;
   gz += pure_gz - delta * dt;
 
-  lft_frw(128 + atan(gz));
-  rgt_frw(128 - atan(gz));
+  lft_frw(trg_spd + Kp * atan(gz));
+  rgt_frw(trg_spd - Kp * atan(gz));
 
-  if(++tme > 10)
+  if(++tme > 100)
   {
     tme = 0;
     Serial.print("\tpure_gz "); Serial.print(pure_gz);
     Serial.print("\tgz ");      Serial.print(gz);
+    Serial.print("\tlft_pwm "); Serial.print(lft_pwm);
+    Serial.print("\trgt_pwm "); Serial.print(rgt_pwm);
     Serial.println();
   }
   
