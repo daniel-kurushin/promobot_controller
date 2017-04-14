@@ -68,7 +68,8 @@ void setup()
   GY85.init();
 
   old_z = GY85.gyro_z(GY85.readGyro());
-  for (int i=0; i < 10; i++) {
+  for (int i=0; i < 10; i++)
+	{
     delay(300);
     new_z = GY85.gyro_z(GY85.readGyro());
     delta += new_z - old_z;
