@@ -1,7 +1,8 @@
-int echoPinA = 2;
-int trigPinA = 12;
-int echoPinB = 11;
-int trigPinB = 12;
+#define echoPinA  2
+#define trigPinA 12
+#define echoPinB  3
+#define trigPinB 13
+#define K        58.0
 
 volatile uint16_t tme = 0;
 volatile float dur = 0;
@@ -45,7 +46,7 @@ void echo()
 	}
 	else
 	{
-		dur = tme / 58.0;
+		dur = tme / K;
 		attachInterrupt(0, echo, RISING);
 	}
 }
