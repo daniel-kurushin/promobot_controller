@@ -31,7 +31,7 @@ void loop() {
 
 			case LEFT:
 				Serial.println("LEFT");
-				// add 10 to right wheel pwm value, substract 10 from left value
+				//
 				break;
 			case RIGHT:
 				Serial.println("RIGHT");
