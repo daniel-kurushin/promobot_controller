@@ -14,11 +14,15 @@
 #define M2AEN 11
 #define M2BEN 12
 
-#define LEFT  4
-#define RIGHT 3
-#define FWD   2
-#define BACK  1
-#define STOP  0
+#define READY 34
+#define SYNC  33
+
+#define LEFT  5
+#define RIGHT 4
+#define FWD   3
+#define BACK  2
+#define STOP  1
+#define NOCMD 0
 
 GY_85 GY85;
 
@@ -128,14 +132,26 @@ void setup()
 
 uint8_t readIRC()
 {
-	uint8_t res = (digitalRead(32) << 2) | (digitalRead(31) << 1) | (digitalRead(30));
-	return res;
+    uint8_t res;
+    if(digitalRead(SYNC))
+    {
+            res = B10000111 & PORTC;
+            digitalWrite(READY, 0);
+    }
+    else
+    {
+            digitalWrite(READY, 1);
+            res = NOCMD;
+    }
+    return res;
 }
+
 
 void loop()
 {
 	pure_gz = GY85.gyro_z(GY85.readGyro());
 	gz += (pure_gz - delta) * dt;
+
 	cmd = readIRC();
 
   process_IR_cmd(cmd);
