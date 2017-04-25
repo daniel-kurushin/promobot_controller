@@ -75,27 +75,27 @@ void rgt_frw(float spd)
 
 void process_IR_cmd(uint8_t cmd)
 {
-  switch (cmd)
-  {
-        case LEFT:
-          z -= 10;
-          break;
-        case RIGHT:
-          z += 10;
-          break;
-        case FWD:
-          trg_spd += 10;
-          break;
-        case BACK:
-          trg_spd -= 10;
-          break;
-        case STOP:
-          trg_spd = 0;
-          z = 0;
-          break;
-  }
-  z = min(max(-180, z), 180);
-  trg_spd = min(max(0, trg_spd), 255);
+	switch (cmd)
+	{
+		case LEFT:
+		z -= 10;
+		break;
+		case RIGHT:
+		z += 10;
+		break;
+		case FWD:
+		trg_spd += 10;
+		break;
+		case BACK:
+		trg_spd -= 10;
+		break;
+		case STOP:
+		trg_spd = 0;
+		z = 0;
+		break;
+	}
+	z = min(max(-180, z), 180);
+	trg_spd = min(max(0, trg_spd), 255);
 }
 
 void setup()
@@ -132,18 +132,18 @@ void setup()
 
 uint8_t readIRC()
 {
-    uint8_t res;
-    if(digitalRead(SYNC))
-    {
-            res = B10000111 & PORTC;
-            digitalWrite(READY, 0);
-    }
-    else
-    {
-            digitalWrite(READY, 1);
-            res = NOCMD;
-    }
-    return res;
+	uint8_t res;
+	if(digitalRead(SYNC))
+	{
+		res = B10000111 & PORTC;
+		digitalWrite(READY, 0);
+	}
+	else
+	{
+		digitalWrite(READY, 1);
+		res = NOCMD;
+	}
+	return res;
 }
 
 
@@ -153,11 +153,10 @@ void loop()
 	gz += (pure_gz - delta) * dt;
 
 	cmd = readIRC();
+	process_IR_cmd(cmd);
 
-  process_IR_cmd(cmd);
-
-	lft_frw(trg_spd + Kp * atan(gz));
-	rgt_frw(trg_spd - Kp * atan(gz));
+	lft_frw(trg_spd - Kp * atan(z - gz));
+	rgt_frw(trg_spd + Kp * atan(z - gz));
 
 	if(++tme > 100)
 	{
@@ -165,8 +164,9 @@ void loop()
 		Serial.print("\tpure_gz "); Serial.print(pure_gz);
 		Serial.print("\tgz ");      Serial.print(gz);
 		Serial.print("\tlft_pwm "); Serial.print(lft_pwm);
-    Serial.print("\trgt_pwm "); Serial.print(rgt_pwm);
+		Serial.print("\trgt_pwm "); Serial.print(rgt_pwm);
 		Serial.print("\ttrg_spd "); Serial.print(trg_spd);
+		Serial.print("\tz "); 		Serial.print(z);
 		Serial.print("\tcmd ");     Serial.print(cmd);
 		Serial.println();
 	}
