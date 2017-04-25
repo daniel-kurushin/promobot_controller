@@ -1,6 +1,6 @@
 
 #define READY 8
-#define SYNC  11
+#define SYNC  9
 
 #define LEFT  5
 #define RIGHT 4

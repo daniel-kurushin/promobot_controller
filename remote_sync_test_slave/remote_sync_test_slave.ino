@@ -20,22 +20,22 @@ void loop() {
 		if (digitalRead(READY))
 		{
 			ircommand = LEFT;
-			switch (ircommand) // 16 is B00010000 -> SYNC bit is 1, others are 0
+			switch (ircommand) // 16 is B01000000 -> SYNC bit is 1, others are 0
 			{
 				case LEFT: // 5
-					PORTB = 16 | 5;
+					PORTB = 128 | 5;
 					break;
 				case RIGHT: // 4
-					PORTB = 16 | 4;
+					PORTB = 128 | 4;
 					break;
 				case FWD: // 3
-					PORTB = 16 | 3;
+					PORTB = 128 | 3;
 					break;
 				case BACK: // 2
-					PORTB = 16 | 2;
+					PORTB = 128 | 2;
 					break;
 				case STOP: // 1
-					PORTB = 16 | 1;
+					PORTB = 128 | 1;
 					break;
 			}
 			// irrecv.resume();
