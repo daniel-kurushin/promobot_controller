@@ -15,14 +15,14 @@
 #define M2BEN 12
 
 #define READY 34
-#define SYNC  33
+#define SYNC_BYTE  0x9e
 
-#define LEFT  5
-#define RIGHT 4
-#define FWD   3
-#define BACK  2
-#define STOP  1
-#define NOCMD 0
+#define LEFT  0x05
+#define RIGHT 0x04
+#define FWD   0x03
+#define BACK  0x02
+#define STOP  0x01
+#define NOCMD 0x00
 
 GY_85 GY85;
 
@@ -133,16 +133,29 @@ void setup()
 uint8_t readIRC()
 {
 	uint8_t res;
-	if(digitalRead(SYNC))
-	{
-		res = B10000111 & PORTC;
-		digitalWrite(READY, 0);
-	}
-	else
-	{
-		digitalWrite(READY, 1);
-		res = NOCMD;
-	}
+  int x = 0;
+  bool is_cmd = true;
+  int8_t sync_bytes[2];
+	if (Serial.available())
+  {
+    for (x; x < 2; x++)
+    {
+      sync_bytes[x] = (int8_t) Serial.read();
+      if (sync_bytes[x] == -1)
+      {
+        is_cmd = false;
+        break;
+      }
+    }
+    if (!is_cmd)
+    {
+      res = NULL;
+    }
+    if (sync_bytes[0] == SYNC_BYTE && sync_bytes[1] == SYNC_BYTE)
+    {
+      res = Serial.read();
+    }
+  }
 	return res;
 }
 
@@ -153,7 +166,10 @@ void loop()
 	gz += (pure_gz - delta) * dt;
 
 	cmd = readIRC();
-	process_IR_cmd(cmd);
+  if (cmd != NULL)
+  {
+    process_IR_cmd(cmd);
+  }
 
 	lft_frw(trg_spd - Kp * atan(z - gz));
 	rgt_frw(trg_spd + Kp * atan(z - gz));

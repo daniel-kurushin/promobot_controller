@@ -6,6 +6,14 @@
 #define BACK	16730805
 #define STOP	16726215
 
+#define LEFT_CMD_REMOTE  0x05
+#define RIGHT_CMD_REMOTE 0x04
+#define FWD_CMD_REMOTE   0x03
+#define BACK_CMD_REMOTE  0x02
+#define STOP_CMD_REMOTE  0x01
+#define NOCMD_CMD_REMOTE 0x00
+
+#define SYNC_BYTE 0x9e
 #define READY	0
 
 int RECV_PIN = 2;
@@ -14,6 +22,11 @@ IRrecv irrecv(RECV_PIN);
 
 decode_results results;
 uint32_t ircommand = STOP;
+
+void sendCmd(uint8_t cmd) {
+	Serial.write(SYNC_BYTE);
+	Serial.write(cmd);
+}
 
 void setup()
 {
@@ -24,25 +37,25 @@ void setup()
 
 void loop() {
 	if (irrecv.decode(&results)) {
-		if (digitalRead(READY))
+		if (1)
 		{
 			ircommand = results.value;
-			switch (ircommand) // 64 is B01000000 -> SYNC bit is 1, others are 0
+			switch (ircommand)
 			{
-				case LEFT: // 5
-					PORTB = 64 | 5;
+				case LEFT:
+					sendCmd(LEFT_CMD_REMOTE);
 					break;
-				case RIGHT: // 4
-					PORTB = 64 | 4;
+				case RIGHT:
+					sendCmd(RIGHT_CMD_REMOTE);
 					break;
-				case FWD: // 3
-					PORTB = 64 | 3;
+				case FWD:
+					sendCmd(FWD_CMD_REMOTE);
 					break;
-				case BACK: // 2
-					PORTB = 64 | 2;
+				case BACK:
+					sendCmd(BACK_CMD_REMOTE);
 					break;
-				case STOP: // 1
-					PORTB = 64 | 1;
+				case STOP:
+					sendCmd(STOP_CMD_REMOTE);
 					break;
 			}
 			irrecv.resume();
