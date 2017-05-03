@@ -55,22 +55,22 @@ void rgt_stop()
 
 void lft_frw(float spd) //TODO ; m/s!!!
 {
-	// digitalWrite(M1AEN, HIGH);
-	// digitalWrite(M1AIN, HIGH);
-	// digitalWrite(M1BIN, LOW);
-	//
-	// lft_pwm = (int) max(min(spd,255),0);
-	// analogWrite(M1PWM, lft_pwm);
+	digitalWrite(M1AEN, HIGH);
+	digitalWrite(M1AIN, HIGH);
+	digitalWrite(M1BIN, LOW);
+	
+	lft_pwm = (int) max(min(spd,255),0);
+	analogWrite(M1PWM, lft_pwm);
 }
 
 void rgt_frw(float spd)
 {
-	// digitalWrite(M2AEN, HIGH);
-	// digitalWrite(M2AIN, HIGH);
-	// digitalWrite(M2BIN, LOW);
-	//
-	// rgt_pwm = (int) max(min(spd,255),0);
-	// analogWrite(M2PWM, rgt_pwm);
+	digitalWrite(M2AEN, HIGH);
+	digitalWrite(M2AIN, HIGH);
+	digitalWrite(M2BIN, LOW);
+	
+	rgt_pwm = (int) max(min(spd,255),0);
+	analogWrite(M2PWM, rgt_pwm);
 }
 
 void process_IR_cmd(uint8_t cmd)
@@ -101,7 +101,8 @@ void process_IR_cmd(uint8_t cmd)
 void setup()
 {
 	Wire.begin();
-	Serial.begin(9600);
+  Serial.begin(9600);
+	Serial1.begin(9600);
 	GY85.init();
 
 	old_z = GY85.gyro_z(GY85.readGyro());
@@ -130,31 +131,23 @@ void setup()
 	pinMode(32, INPUT);
 }
 
+bool readSynchro()
+{
+  bool res = false;
+  if (Serial1.available())
+  {
+    res = Serial1.read() == SYNC_BYTE;
+  }
+  return res;
+}
+
 uint8_t readIRC()
 {
-	uint8_t res;
-  int x = 0;
-  bool is_cmd = true;
-  int8_t sync_bytes[2];
-	if (Serial.available())
+	uint8_t res = NOCMD;
+  if(readSynchro() && readSynchro())
   {
-    for (x; x < 2; x++)
-    {
-      sync_bytes[x] = (int8_t) Serial.read();
-      if (sync_bytes[x] == -1)
-      {
-        is_cmd = false;
-        break;
-      }
-    }
-    if (!is_cmd)
-    {
-      res = NULL;
-    }
-    if (sync_bytes[0] == SYNC_BYTE && sync_bytes[1] == SYNC_BYTE)
-    {
-      res = Serial.read();
-    }
+    res = Serial1.read();
+    Serial.print(res);
   }
 	return res;
 }
@@ -166,7 +159,7 @@ void loop()
 	gz += (pure_gz - delta) * dt;
 
 	cmd = readIRC();
-  if (cmd != NULL)
+  if (cmd != NOCMD)
   {
     process_IR_cmd(cmd);
   }

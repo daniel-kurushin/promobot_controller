@@ -25,41 +25,38 @@ uint32_t ircommand = STOP;
 
 void sendCmd(uint8_t cmd) {
 	Serial.write(SYNC_BYTE);
+	Serial.write(SYNC_BYTE);
 	Serial.write(cmd);
 }
 
 void setup()
 {
-	DDRB |= B00000111;
-	PORTB = 0;
+	Serial.begin(9600);
 	irrecv.enableIRIn(); // Start the receiver
 }
 
 void loop() {
 	if (irrecv.decode(&results)) {
-		if (1)
+		ircommand = results.value;
+		switch (ircommand)
 		{
-			ircommand = results.value;
-			switch (ircommand)
-			{
-				case LEFT:
-					sendCmd(LEFT_CMD_REMOTE);
-					break;
-				case RIGHT:
-					sendCmd(RIGHT_CMD_REMOTE);
-					break;
-				case FWD:
-					sendCmd(FWD_CMD_REMOTE);
-					break;
-				case BACK:
-					sendCmd(BACK_CMD_REMOTE);
-					break;
-				case STOP:
-					sendCmd(STOP_CMD_REMOTE);
-					break;
-			}
-			irrecv.resume();
+			case LEFT:
+				sendCmd(LEFT_CMD_REMOTE);
+				break;
+			case RIGHT:
+				sendCmd(RIGHT_CMD_REMOTE);
+				break;
+			case FWD:
+				sendCmd(FWD_CMD_REMOTE);
+				break;
+			case BACK:
+				sendCmd(BACK_CMD_REMOTE);
+				break;
+			case STOP:
+				sendCmd(STOP_CMD_REMOTE);
+				break;
 		}
+		irrecv.resume();
 	}
 }
 
