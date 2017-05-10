@@ -1,5 +1,7 @@
 #include <IRremote.h>
 
+#define IR_USE_TIMER2
+
 #define LEFT	16716015
 #define RIGHT	16734885
 #define FWD		16718055
