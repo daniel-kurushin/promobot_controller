@@ -1,6 +1,8 @@
 #include <Wire.h>
 #include <GY_85.h>
 #include <math.h>
+#include <IRremote.h>
+#define IR_USE_TIMER2
 
 #define M1AIN 7
 #define M1BIN 6
@@ -14,14 +16,11 @@
 #define M2AEN 11
 #define M2BEN 12
 
-#define READY 34
-#define SYNC_BYTE  0x9e
-
-#define LEFT  0x05
-#define RIGHT 0x04
-#define FWD   0x03
-#define BACK  0x02
-#define STOP  0x01
+#define LEFT  16716015
+#define RIGHT 16734885
+#define FWD   16718055
+#define BACK  16730805
+#define STOP  16726215
 #define NOCMD 0x00
 
 GY_85 GY85;
@@ -37,7 +36,11 @@ float Kp = 10;
 uint16_t tme = 0;
 uint8_t lft_pwm = 0;
 uint8_t rgt_pwm = 0;
-uint8_t cmd = 0;
+unsigned long cmd = 0;
+int RECV_PIN = 2;
+
+IRrecv irrecv(RECV_PIN);
+decode_results results;
 
 float trg_spd = 0;
 
@@ -73,7 +76,7 @@ void rgt_frw(float spd)
 	analogWrite(M2PWM, rgt_pwm);
 }
 
-void process_IR_cmd(uint8_t cmd)
+void process_IR_cmd(unsigned long cmd)
 {
 	switch (cmd)
 	{
@@ -102,8 +105,8 @@ void setup()
 {
 	Wire.begin();
   Serial.begin(9600);
-	Serial1.begin(9600);
 	GY85.init();
+  irrecv.enableIRIn();
 
 	old_z = GY85.gyro_z(GY85.readGyro());
 	for (int i=0; i < 10; i++)
@@ -124,32 +127,35 @@ void setup()
 	pinMode(M2BIN, OUTPUT);
 	pinMode(M2PWM, OUTPUT);
 	pinMode(M2AEN, OUTPUT);
-	pinMode(M2BEN, OUTPUT);
+  pinMode(M2BEN, OUTPUT);
+	
+  pinMode(13, OUTPUT);
 
 	pinMode(30, INPUT);
 	pinMode(31, INPUT);
 	pinMode(32, INPUT);
 }
 
-bool readSynchro()
+// bool readSynchro()
+// {
+//   bool res = false;
+//   if (Serial1.available())
+//   {
+//     res = Serial1.read() == SYNC_BYTE;
+//   }
+//   return res;
+// }
+
+unsigned long readIRC()
 {
-  bool res = false;
-  if (Serial1.available())
-  {
-    res = Serial1.read() == SYNC_BYTE;
+	unsigned long res = NOCMD;
+  digitalWrite(13,1);
+  // read ir reciever
+  if (irrecv.decode(&results)) {
+    res = results.value;
+    irrecv.resume();
   }
   return res;
-}
-
-uint8_t readIRC()
-{
-	uint8_t res = NOCMD;
-  if(readSynchro() && readSynchro())
-  {
-    res = Serial1.read();
-    Serial.print(res);
-  }
-	return res;
 }
 
 
@@ -157,7 +163,6 @@ void loop()
 {
 	pure_gz = GY85.gyro_z(GY85.readGyro());
 	gz += (pure_gz - delta) * dt;
-
 	cmd = readIRC();
   if (cmd != NOCMD)
   {
