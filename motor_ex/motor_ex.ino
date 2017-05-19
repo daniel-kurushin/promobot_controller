@@ -4,17 +4,17 @@
 #include <IRremote.h>
 #define IR_USE_TIMER2
 
-#define M1AIN 7
-#define M1BIN 6
-#define M1PWM 5
-#define M1AEN 4
-#define M1BEN 3
+#define M1AIN PA0
+#define M1BIN PA1
+#define M1PWM PA2
+#define M1AEN PA3
+#define M1BEN PA4
 
-#define M2AIN 8
-#define M2BIN 9
-#define M2PWM 10
-#define M2AEN 11
-#define M2BEN 12
+#define M2AIN PC4
+#define M2BIN PC3
+#define M2PWM PC2
+#define M2AEN PC1
+#define M2BEN PC0
 
 #define LEFT  16716015
 #define RIGHT 16734885
@@ -44,6 +44,23 @@ decode_results results;
 
 float trg_spd = 0;
 
+
+
+// DDRF |= (1 << M1PWM);
+// DDRK |= (1 << M2PWM);
+
+// Set Timer 0 prescaler to clock/8.
+// At 9.6 MHz this is 1.2 MHz.
+// See ATtiny13 datasheet, Table 11.9.
+// TCCR0B |= (1 << CS01);
+ 
+// // Set to 'Fast PWM' mode
+// // Enable 'Fast PWM'
+// TCCR0A |= (1 << WGM01) | (1 << WGM00);
+ 
+// // Clear OC0B and OC0A(!!!) output on compare match, upwards counting.
+// TCCR0A |= (1 << COM0A0) | (1 << COM0B0);
+
 void lft_stop()
 {
 	digitalWrite(M1AEN, LOW);
@@ -58,22 +75,20 @@ void rgt_stop()
 
 void lft_frw(float spd) //TODO ; m/s!!!
 {
-	digitalWrite(M1AEN, HIGH);
-	digitalWrite(M1AIN, HIGH);
-	digitalWrite(M1BIN, LOW);
-	
+  PORTA |= _BV(M1AEN) | _BV(M1AIN);
+	PORTA &= ~_BV(M1BIN);
+  
 	lft_pwm = (int) max(min(spd,255),0);
-	analogWrite(M1PWM, lft_pwm);
+	// OCR0A = lft_pwm;
 }
 
 void rgt_frw(float spd)
 {
-	digitalWrite(M2AEN, HIGH);
-	digitalWrite(M2AIN, HIGH);
-	digitalWrite(M2BIN, LOW);
+  PORTC |= _BV(M2AEN) | _BV(M2AIN);
+  PORTC &= ~_BV(M2BIN);
 	
 	rgt_pwm = (int) max(min(spd,255),0);
-	analogWrite(M2PWM, rgt_pwm);
+	// analogWrite(M2PWM, rgt_pwm);
 }
 
 void process_IR_cmd(unsigned long cmd)
@@ -108,6 +123,23 @@ void setup()
 	GY85.init();
   irrecv.enableIRIn();
 
+  noInterrupts();           // disable all interrupts
+
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TCNT1  = 0;
+
+  OCR1A = 3125;            // compare match register 16MHz/256/2Hz
+  // OCR1A = 3125;            // compare match register 16MHz/256/2Hz
+  TCCR1B |= (1 << WGM12);   // CTC mode
+  TCCR1B |= (1 << CS10);    // 1024 prescaler 
+  TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
+
+  DDRA |= _BV(M1AIN) | _BV(M1BIN) | _BV(M1PWM) | _BV(M1AEN) | _BV(M1BEN);
+  DDRC |= _BV(M2AIN) | _BV(M2BIN) | _BV(M2PWM) | _BV(M2AEN) | _BV(M2BEN);
+
+  interrupts();             // enable all interrupts
+
 	old_z = GY85.gyro_z(GY85.readGyro());
 	for (int i=0; i < 10; i++)
 	{
@@ -116,35 +148,7 @@ void setup()
 		delta += new_z - old_z;
 	}
 	delta /= 10;
-
-	pinMode(M1AIN, OUTPUT);
-	pinMode(M1BIN, OUTPUT);
-	pinMode(M1PWM, OUTPUT);
-	pinMode(M1AEN, OUTPUT);
-	pinMode(M1BEN, OUTPUT);
-
-	pinMode(M2AIN, OUTPUT);
-	pinMode(M2BIN, OUTPUT);
-	pinMode(M2PWM, OUTPUT);
-	pinMode(M2AEN, OUTPUT);
-  pinMode(M2BEN, OUTPUT);
-	
-  pinMode(13, OUTPUT);
-
-	pinMode(30, INPUT);
-	pinMode(31, INPUT);
-	pinMode(32, INPUT);
 }
-
-// bool readSynchro()
-// {
-//   bool res = false;
-//   if (Serial1.available())
-//   {
-//     res = Serial1.read() == SYNC_BYTE;
-//   }
-//   return res;
-// }
 
 unsigned long readIRC()
 {
@@ -186,4 +190,27 @@ void loop()
 	}
 
 	delay(dt * 1000);
+}
+
+volatile uint8_t cnt = 0;
+volatile uint8_t m1cnt = 0;
+volatile uint8_t m2cnt = 0;
+
+ISR(TIMER1_COMPA_vect) 
+{
+  TCNT1 = 0;
+  if (cnt++ == 0)
+  {
+    PORTA |= _BV(M1PWM);
+    PORTC |= _BV(M2PWM);
+    m1cnt = m2cnt = 0;
+  }
+  if (m1cnt++ > lft_pwm)
+  {
+    PORTA &= ~_BV(M1PWM);
+  }
+  if (m2cnt++ > rgt_pwm)
+  {
+    PORTC &= ~_BV(M2PWM);
+  }
 }
