@@ -16,6 +16,13 @@
 #define M2AEN PC1
 #define M2BEN PC0
 
+#define S0TRI PL0
+#define S1TRI PL1
+#define S2TRI PL2
+#define S3TRI PL3
+
+#define SECHO PB0
+
 #define LEFT  16716015
 #define RIGHT 16734885
 #define FWD   16718055
@@ -213,4 +220,8 @@ ISR(TIMER1_COMPA_vect)
   {
     PORTC &= ~_BV(M2PWM);
   }
+}
+
+ISR(TIMER2_COMP_vect) {
+  
 }
