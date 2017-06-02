@@ -60,11 +60,11 @@ float trg_spd = 0;
 // At 9.6 MHz this is 1.2 MHz.
 // See ATtiny13 datasheet, Table 11.9.
 // TCCR0B |= (1 << CS01);
- 
+
 // // Set to 'Fast PWM' mode
 // // Enable 'Fast PWM'
 // TCCR0A |= (1 << WGM01) | (1 << WGM00);
- 
+
 // // Clear OC0B and OC0A(!!!) output on compare match, upwards counting.
 // TCCR0A |= (1 << COM0A0) | (1 << COM0B0);
 
@@ -82,18 +82,18 @@ void rgt_stop()
 
 void lft_frw(float spd) //TODO ; m/s!!!
 {
-  PORTA |= _BV(M1AEN) | _BV(M1AIN);
+	PORTA |= _BV(M1AEN) | _BV(M1AIN);
 	PORTA &= ~_BV(M1BIN);
-  
+
 	lft_pwm = (int) max(min(spd,255),0);
 	// OCR0A = lft_pwm;
 }
 
 void rgt_frw(float spd)
 {
-  PORTC |= _BV(M2AEN) | _BV(M2AIN);
-  PORTC &= ~_BV(M2BIN);
-	
+	PORTC |= _BV(M2AEN) | _BV(M2AIN);
+	PORTC &= ~_BV(M2BIN);
+
 	rgt_pwm = (int) max(min(spd,255),0);
 	// analogWrite(M2PWM, rgt_pwm);
 }
@@ -126,26 +126,26 @@ void process_IR_cmd(unsigned long cmd)
 void setup()
 {
 	Wire.begin();
-  Serial.begin(9600);
+	Serial.begin(9600);
 	GY85.init();
-  irrecv.enableIRIn();
+	irrecv.enableIRIn();
 
-  noInterrupts();           // disable all interrupts
+	noInterrupts();           // disable all interrupts
 
-  TCCR1A = 0;
-  TCCR1B = 0;
-  TCNT1  = 0;
+	TCCR1A = 0;
+	TCCR1B = 0;
+	TCNT1  = 0;
 
-  OCR1A = 3125;            // compare match register 16MHz/256/2Hz
-  // OCR1A = 3125;            // compare match register 16MHz/256/2Hz
-  TCCR1B |= (1 << WGM12);   // CTC mode
-  TCCR1B |= (1 << CS10);    // 1024 prescaler 
-  TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
+	OCR1A = 3125;            // compare match register 16MHz/256/2Hz
+	// OCR1A = 3125;            // compare match register 16MHz/256/2Hz
+	TCCR1B |= (1 << WGM12);   // CTC mode
+	TCCR1B |= (1 << CS10);    // 1024 prescaler
+	TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
 
-  DDRA |= _BV(M1AIN) | _BV(M1BIN) | _BV(M1PWM) | _BV(M1AEN) | _BV(M1BEN);
-  DDRC |= _BV(M2AIN) | _BV(M2BIN) | _BV(M2PWM) | _BV(M2AEN) | _BV(M2BEN);
+	DDRA |= _BV(M1AIN) | _BV(M1BIN) | _BV(M1PWM) | _BV(M1AEN) | _BV(M1BEN);
+	DDRC |= _BV(M2AIN) | _BV(M2BIN) | _BV(M2PWM) | _BV(M2AEN) | _BV(M2BEN);
 
-  interrupts();             // enable all interrupts
+	interrupts();             // enable all interrupts
 
 	old_z = GY85.gyro_z(GY85.readGyro());
 	for (int i=0; i < 10; i++)
@@ -160,13 +160,13 @@ void setup()
 unsigned long readIRC()
 {
 	unsigned long res = NOCMD;
-  digitalWrite(13,1);
-  // read ir reciever
-  if (irrecv.decode(&results)) {
-    res = results.value;
-    irrecv.resume();
-  }
-  return res;
+	digitalWrite(13,1);
+	// read ir reciever
+	if (irrecv.decode(&results)) {
+		res = results.value;
+		irrecv.resume();
+	}
+	return res;
 }
 
 
@@ -175,10 +175,10 @@ void loop()
 	pure_gz = GY85.gyro_z(GY85.readGyro());
 	gz += (pure_gz - delta) * dt;
 	cmd = readIRC();
-  if (cmd != NOCMD)
-  {
-    process_IR_cmd(cmd);
-  }
+	if (cmd != NOCMD)
+	{
+		process_IR_cmd(cmd);
+	}
 
 	lft_frw(trg_spd - Kp * atan(z - gz));
 	rgt_frw(trg_spd + Kp * atan(z - gz));
@@ -203,23 +203,23 @@ volatile uint8_t cnt = 0;
 volatile uint8_t m1cnt = 0;
 volatile uint8_t m2cnt = 0;
 
-ISR(TIMER1_COMPA_vect) 
+ISR(TIMER1_COMPA_vect)
 {
-  TCNT1 = 0;
-  if (cnt++ == 0)
-  {
-    PORTA |= _BV(M1PWM);
-    PORTC |= _BV(M2PWM);
-    m1cnt = m2cnt = 0;
-  }
-  if (m1cnt++ > lft_pwm)
-  {
-    PORTA &= ~_BV(M1PWM);
-  }
-  if (m2cnt++ > rgt_pwm)
-  {
-    PORTC &= ~_BV(M2PWM);
-  }
+	TCNT1 = 0;
+	if (cnt++ == 0)
+	{
+		PORTA |= _BV(M1PWM);
+		PORTC |= _BV(M2PWM);
+		m1cnt = m2cnt = 0;
+	}
+	if (m1cnt++ > lft_pwm)
+	{
+		PORTA &= ~_BV(M1PWM);
+	}
+	if (m2cnt++ > rgt_pwm)
+	{
+		PORTC &= ~_BV(M2PWM);
+	}
 }
 
 ISR(TIMER2_COMP_vect) {
