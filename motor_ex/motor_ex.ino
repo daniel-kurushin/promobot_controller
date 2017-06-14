@@ -21,6 +21,13 @@
 #define S2TRI PL2
 #define S3TRI PL3
 
+#define RIGHTHAND PG0
+#define LEFTHAND PG1
+#define RHUP PL4
+#define LHUP PL5
+#define RHDOWN PL6
+#define LHDOWN PL7
+
 #define SECHO PB0
 
 #define LEFT  16716015
@@ -28,6 +35,12 @@
 #define FWD   16718055
 #define BACK  16730805
 #define STOP  16726215
+#define RIGHTHANDUP 16761405
+#define RIGHTHANDDOWN 16748655
+#define RIGHTHANDSTOP 16756815
+#define LEFTHANDUP 16720605
+#define LEFTHANDDOWN 16769055
+#define LEFTHANDSTOP 16738455
 #define NOCMD 0x00
 
 GY_85 GY85;
@@ -45,6 +58,7 @@ uint8_t lft_pwm = 0;
 uint8_t rgt_pwm = 0;
 unsigned long cmd = 0;
 int RECV_PIN = 2;
+uint8_t hand_pwm = 0;
 
 IRrecv irrecv(RECV_PIN);
 decode_results results;
@@ -103,21 +117,63 @@ void process_IR_cmd(unsigned long cmd)
 	switch (cmd)
 	{
 		case LEFT:
-		z -= 10;
-		break;
+			z -= 10;
+			break;
 		case RIGHT:
-		z += 10;
-		break;
+			z += 10;
+			break;
 		case FWD:
-		trg_spd += 10;
-		break;
+			trg_spd += 10;
+			break;
 		case BACK:
-		trg_spd -= 10;
-		break;
+			trg_spd -= 10;
+			break;
 		case STOP:
-		trg_spd = 0;
-		z = 0;
-		break;
+			trg_spd = 0;
+			z = 0;
+			break;
+		case RIGHTHANDUP:
+			hand_pwm = 50;
+			PORTL |= _BV(RHUP);
+			PORTL &= ~_BV(LHUP);
+			PORTL &= ~_BV(RHDOWN);
+			PORTL &= ~_BV(LHDOWN);
+			break;
+		case RIGHTHANDDOWN:
+			hand_pwm = 50;
+			PORTL &= ~_BV(RHUP);
+			PORTL &= ~_BV(LHUP);
+			PORTL |= _BV(RHDOWN);
+			PORTL &= ~_BV(LHDOWN);
+			break;
+		case RIGHTHANDSTOP:
+			hand_pwm = 0;
+			PORTL &= ~_BV(RHUP);
+			PORTL &= ~_BV(LHUP);
+			PORTL &= ~_BV(RHDOWN);
+			PORTL &= ~_BV(LHDOWN);
+			break;
+		case LEFTHANDUP:
+			hand_pwm = 50;
+			PORTL &= ~_BV(RHUP);
+			PORTL |= _BV(LHUP);
+			PORTL &= ~_BV(RHDOWN);
+			PORTL &= ~_BV(LHDOWN);
+			break;
+		case LEFTHANDDOWN:
+			hand_pwm = 50;
+			PORTL &= ~_BV(RHUP);
+			PORTL &= ~_BV(LHUP);
+			PORTL &= ~_BV(RHDOWN);
+			PORTL |= _BV(LHDOWN);
+			break;
+		case LEFTHANDSTOP:
+			hand_pwm = 0;
+			PORTL &= ~_BV(RHUP);
+			PORTL &= ~_BV(LHUP);
+			PORTL &= ~_BV(RHDOWN);
+			PORTL &= ~_BV(LHDOWN);
+			break;
 	}
 	z = min(max(-180, z), 180);
 	trg_spd = min(max(0, trg_spd), 255);
@@ -144,6 +200,8 @@ void setup()
 
 	DDRA |= _BV(M1AIN) | _BV(M1BIN) | _BV(M1PWM) | _BV(M1AEN) | _BV(M1BEN);
 	DDRC |= _BV(M2AIN) | _BV(M2BIN) | _BV(M2PWM) | _BV(M2AEN) | _BV(M2BEN);
+	DDRL |= _BV(S0TRI) | _BV(S1TRI) | _BV(S2TRI) | _BV(S3TRI) | _BV(RHUP) | _BV(LHUP) | _BV(RHDOWN) | _BV(LHDOWN);
+	DDRG |= _BV(RIGHTHAND) | _BV(LEFTHAND);
 
 	interrupts();             // enable all interrupts
 
@@ -160,7 +218,7 @@ void setup()
 unsigned long readIRC()
 {
 	unsigned long res = NOCMD;
-	digitalWrite(13,1);
+	// digitalWrite(13,1);
 	// read ir reciever
 	if (irrecv.decode(&results)) {
 		res = results.value;
@@ -202,6 +260,8 @@ void loop()
 volatile uint8_t cnt = 0;
 volatile uint8_t m1cnt = 0;
 volatile uint8_t m2cnt = 0;
+volatile uint8_t lhcnt = 0;
+volatile uint8_t rhcnt = 0;
 
 ISR(TIMER1_COMPA_vect)
 {
@@ -210,7 +270,8 @@ ISR(TIMER1_COMPA_vect)
 	{
 		PORTA |= _BV(M1PWM);
 		PORTC |= _BV(M2PWM);
-		m1cnt = m2cnt = 0;
+		PORTL |= _BV(RIGHTHAND) | _BV(LEFTHAND);
+		m1cnt = m2cnt = lhcnt = rhcnt = 0;
 	}
 	if (m1cnt++ > lft_pwm)
 	{
@@ -219,6 +280,14 @@ ISR(TIMER1_COMPA_vect)
 	if (m2cnt++ > rgt_pwm)
 	{
 		PORTC &= ~_BV(M2PWM);
+	}
+	if (rhcnt++ > hand_pwm)
+	{
+		PORTL &= ~_BV(RIGHTHAND);
+	}
+	if (lhcnt++ > hand_pwm)
+	{
+		PORTL &= ~_BV(LEFTHAND);
 	}
 }
 
