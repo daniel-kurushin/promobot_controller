@@ -10,10 +10,11 @@
 // #define M1AEN PA3 // 25 -> 2
 // #define M1BEN PA4 // 26 -> 3 (IN B on scheme)
 
-#define LFTTOPSW PA3
-#define LFTBOTMSW PA4
-#define RGTTOPSW PA5
-#define RGTBOTMSW PA6
+#define LFTSTSWPORT PB0
+#define RGTSTSWPORT PB1
+
+#define LH_NOT_LIMIT PINB & _BV(LFTSTSWPORT) == 1
+#define RH_NOT_LIMIT PINB & _BV(RGTSTSWPORT) == 1
 
 #define M2AIN PC4 // 33 -> 1
 #define M2BIN PC3 // 34 -> 6
@@ -26,8 +27,13 @@
 #define S2TRI PL2
 #define S3TRI PL3
 
-#define RIGHTHAND PG0 // 41
-#define LEFTHAND PG1 // 40
+#define RH_GO_UP PORTL |= _BV(RHUP)
+#define RH_GO_DOWN PORTL |= _BV(RHDOWN)
+#define LH_STOP PORTG &= ~_BV(LEFTHAND)
+#define RH_STOP PORTG &= ~_BV(RIGHTHAND)
+
+#define RIGHTHAND PG1 // 40
+#define LEFTHAND PG0 // 41
 #define RHUP PL4 // 45
 #define LHUP PL5 // 44
 #define RHDOWN PL6 // 43
@@ -69,6 +75,22 @@ IRrecv irrecv(RECV_PIN);
 decode_results results;
 
 float trg_spd = 0;
+
+typedef enum {
+	LH_STATE_INIT,
+	LH_STATE_GO_DOWN,
+	LH_STATE_SPIN_UP,
+	LH_STATE_SPIN_DOWN,
+	LH_STATE_STOP,
+	LH_STATE_SPIN_OK,
+	LH_STATE_SPIN_FAIL,
+	LH_STATE_IDLE
+} LH_State_t;
+
+volatile LH_State_t LH_State = LH_STATE_INIT;
+volatile uint8_t LH_Command, old_LH_Command = 0;
+volatile uint16_t LH_Time = 0;
+volatile LH_State_t old_LH_State = NULL;
 
 
 
@@ -135,47 +157,35 @@ void process_IR_cmd(unsigned long cmd)
 			trg_spd = 0;
 			z = 0;
 			break;
-		case RIGHTHANDUP:
-			hand_pwm = 50;
-			PORTL |= _BV(RHUP);
-			PORTL &= ~_BV(LHUP);
-			PORTL &= ~_BV(RHDOWN);
-			PORTL &= ~_BV(LHDOWN);
-			break;
-		case RIGHTHANDDOWN:
-			hand_pwm = 50;
-			PORTL &= ~_BV(RHUP);
-			PORTL &= ~_BV(LHUP);
-			PORTL |= _BV(RHDOWN);
-			PORTL &= ~_BV(LHDOWN);
-			break;
-		case RIGHTHANDSTOP:
-			hand_pwm = 0;
-			PORTL &= ~_BV(RHUP);
-			PORTL &= ~_BV(LHUP);
-			PORTL &= ~_BV(RHDOWN);
-			PORTL &= ~_BV(LHDOWN);
-			break;
+		// case RIGHTHANDUP:
+		// 	RH_State = RH_STATE_SPIN_UP;
+		// 	old_LH_Command = LH_Command;
+		// 	LH_Command = RIGHTHANDUP;
+		// 	break;
+		// case RIGHTHANDDOWN:
+		// 	RH_State = RH_STATE_SPIN_DOWN;
+		// 	old_LH_Command = LH_Command;
+		// 	LH_Command = RIGHTHANDDOWN;
+		// 	break;
+		// case RIGHTHANDSTOP:
+		// 	RH_State = RH_STATE_STOP;
+		// 	old_LH_Command = LH_Command;
+		// 	LH_Command = RIGHTHANDSTOP;
+		// 	break;
 		case LEFTHANDUP:
-			hand_pwm = 50;
-			PORTL &= ~_BV(RHUP);
-			PORTL |= _BV(LHUP);
-			PORTL &= ~_BV(RHDOWN);
-			PORTL &= ~_BV(LHDOWN);
+			LH_State = LH_STATE_SPIN_UP;
+			old_LH_Command = LH_Command;
+			LH_Command = LEFTHANDUP;
 			break;
 		case LEFTHANDDOWN:
-			hand_pwm = 50;
-			PORTL &= ~_BV(RHUP);
-			PORTL &= ~_BV(LHUP);
-			PORTL &= ~_BV(RHDOWN);
-			PORTL |= _BV(LHDOWN);
+			LH_State = LH_STATE_SPIN_DOWN;
+			old_LH_Command = LH_Command;
+			LH_Command = LEFTHANDDOWN;
 			break;
 		case LEFTHANDSTOP:
-			hand_pwm = 0;
-			PORTL &= ~_BV(RHUP);
-			PORTL &= ~_BV(LHUP);
-			PORTL &= ~_BV(RHDOWN);
-			PORTL &= ~_BV(LHDOWN);
+			LH_State = LH_STATE_STOP;
+			old_LH_Command = LH_Command;
+			LH_Command = LEFTHANDSTOP;
 			break;
 	}
 	z = min(max(-180, z), 180);
@@ -211,12 +221,24 @@ void setup()
 	TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
 
 	DDRA |= _BV(M1AIN) | _BV(M1BIN) | _BV(M1PWM);
+	DDRB |= _BV(LFTSTSWPORT) | _BV(RGTSTSWPORT);
 	DDRC |= _BV(M2AIN) | _BV(M2BIN) | _BV(M2PWM);
 	DDRL |= _BV(S0TRI) | _BV(S1TRI) | _BV(S2TRI) | _BV(S3TRI) | _BV(RHUP) | _BV(LHUP) | _BV(RHDOWN) | _BV(LHDOWN);
 	DDRG |= _BV(RIGHTHAND) | _BV(LEFTHAND);
 
 	interrupts();             // enable all interrupts
 }
+
+void LH_Setup()
+{
+	while (LH_NOT_LIMIT) {
+		LH_GO_DOWN();
+	}
+	LH_STOP;
+}
+
+void LH_GO_UP() {	PORTL |= _BV(LHUP); PORTL &= ~_BV(LHDOWN); PORTG |= _BV(LEFTHAND); }
+void LH_GO_DOWN() {  PORTL |= _BV(LHDOWN); PORTL &= ~_BV(LHUP); PORTG |= _BV(LEFTHAND); }
 
 unsigned long readIRC()
 {
@@ -228,6 +250,57 @@ unsigned long readIRC()
 		irrecv.resume();
 	}
 	return res;
+}
+
+
+void leftHandWork()
+{
+	switch (LH_State)
+	{
+		case LH_STATE_INIT:
+			LH_Time = 0;
+			LH_State = LH_STATE_GO_DOWN;
+			break;
+		case LH_STATE_GO_DOWN:
+			LH_Setup();
+			LH_State = LH_STATE_IDLE;
+			break;
+		case LH_STATE_SPIN_UP:
+			if ((LH_Command != old_LH_Command) & LH_NOT_LIMIT)
+			{
+				LH_GO_UP();
+			}
+			else
+			{
+				LH_State = LH_STATE_SPIN_OK;
+			}
+			break;
+		case LH_STATE_SPIN_DOWN:
+			if ((LH_Command != old_LH_Command) & LH_NOT_LIMIT)
+			{
+				LH_GO_DOWN();
+			}
+			else
+			{
+				LH_State = LH_STATE_SPIN_OK;
+			}
+			break;
+		case LH_STATE_STOP:
+			LH_State = LH_STATE_SPIN_OK;
+			break;
+		case LH_STATE_SPIN_OK:
+			LH_Time = 0;
+			LH_STOP;
+			LH_State = LH_STATE_IDLE;
+			LH_Command = 0;
+			break;
+		case LH_STATE_SPIN_FAIL:
+			break;
+		case LH_STATE_IDLE:
+			LH_Time = 0;
+			break;
+	}
+	old_LH_State = LH_State;
 }
 
 
@@ -250,12 +323,17 @@ void loop()
 	if(++tme > 100)
 	{
 		tme = 0;
-		Serial.print("\tpure_gz "); Serial.print(pure_gz);
-		Serial.print("\tgz ");      Serial.print(gz);
-		Serial.print("\tlft_pwm "); Serial.print(lft_pwm);
-		Serial.print("\trgt_pwm "); Serial.print(rgt_pwm);
-		Serial.print("\ttrg_spd "); Serial.print(trg_spd);
-		Serial.print("\tz "); 		Serial.print(z);
+		// Serial.print("\tpure_gz "); Serial.print(pure_gz);
+		// Serial.print("\tgz ");      Serial.print(gz);
+		// Serial.print("\tlft_pwm "); Serial.print(lft_pwm);
+		// Serial.print("\trgt_pwm "); Serial.print(rgt_pwm);
+		// Serial.print("\ttrg_spd "); Serial.print(trg_spd);
+		// Serial.print("\tz "); 		Serial.print(z);
+		Serial.print("\tlh_state "); 		Serial.print(LH_State);
+		Serial.print("\tlh_cmd "); 		Serial.print(LH_Command);
+		Serial.print("\tlh_limit "); 		Serial.print(LH_NOT_LIMIT);
+		// Serial.print("\tlh_cmd "); 		Serial.print(LH_Command);
+
 		Serial.print("\tcmd ");     Serial.print(cmd);
 		Serial.println();
 	}
@@ -269,32 +347,12 @@ volatile uint8_t m2cnt = 0;
 volatile uint8_t lhcnt = 0;
 volatile uint8_t rhcnt = 0;
 
-ISR(TIMER1_COMPA_vect)
+void legsWork()
 {
-	TCNT1 = 0;
-	// Serial.println(".1");
 	if (cnt++ == 0)
 	{
 		PORTA |= _BV(M1PWM);
 		PORTC |= _BV(M2PWM);
-		// Serial.println(".2");
-		if (PINA & _BV(LFTBOTMSW) | PINA & _BV(LFTTOPSW))
-		{
-			PORTG &= ~_BV(LEFTHAND);
-		}
-		else 
-		{
-			PORTG |= _BV(LEFTHAND);
-		}
-		if (PINA & _BV(RGTBOTMSW) | PINA & _BV(RGTTOPSW))
-		{
-			PORTG &= ~_BV(RIGHTHAND);
-		}
-		else 
-		{
-			PORTG |= _BV(RIGHTHAND);
-		}
-		// Serial.println(".3");
 		m1cnt = m2cnt = lhcnt = rhcnt = 0;
 	}
 	if (m1cnt++ > lft_pwm)
@@ -305,13 +363,13 @@ ISR(TIMER1_COMPA_vect)
 	{
 		PORTC &= ~_BV(M2PWM);
 	}
-	if (rhcnt++ > hand_pwm)
-	{
-		PORTG &= ~_BV(RIGHTHAND);
-	}
-	if (lhcnt++ > hand_pwm)
-	{
-		PORTG &= ~_BV(LEFTHAND);
-	}
-	// Serial.println(".4");	
 }
+
+ISR(TIMER1_COMPA_vect)
+{
+	TCNT1 = 0;
+	leftHandWork();
+	// legsWork();
+}
+
+
