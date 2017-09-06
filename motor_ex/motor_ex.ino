@@ -54,6 +54,8 @@
 #define LEFTHANDSTOP 16738455
 #define NOCMD 0x00
 
+#define LH_IS_NEW_CMD (LH_Command != old_LH_Command) & !LH_NOT_LIMIT
+
 GY_85 GY85;
 
 float gz = 0;
@@ -173,18 +175,18 @@ void process_IR_cmd(unsigned long cmd)
 		// 	LH_Command = RIGHTHANDSTOP;
 		// 	break;
 		case LEFTHANDUP:
-			LH_State = LH_STATE_SPIN_UP;
-			old_LH_Command = LH_Command;
+			// LH_State = LH_STATE_SPIN_UP;
+			// old_LH_Command = LH_Command;
 			LH_Command = LEFTHANDUP;
 			break;
 		case LEFTHANDDOWN:
-			LH_State = LH_STATE_SPIN_DOWN;
-			old_LH_Command = LH_Command;
+			// LH_State = LH_STATE_SPIN_DOWN;
+			// old_LH_Command = LH_Command;
 			LH_Command = LEFTHANDDOWN;
 			break;
 		case LEFTHANDSTOP:
-			LH_State = LH_STATE_STOP;
-			old_LH_Command = LH_Command;
+			// LH_State = LH_STATE_STOP;
+			// old_LH_Command = LH_Command;
 			LH_Command = LEFTHANDSTOP;
 			break;
 	}
@@ -262,31 +264,30 @@ void leftHandWork()
 			LH_State = LH_STATE_GO_DOWN;
 			break;
 		case LH_STATE_GO_DOWN:
-			LH_Setup();
-			LH_State = LH_STATE_IDLE;
+			old_LH_Command = LEFTHANDDOWN;
+			LH_GO_DOWN();
+		  if (!LH_NOT_LIMIT)
+		  {
+		  	LH_State = LH_STATE_STOP;
+		  }
 			break;
 		case LH_STATE_SPIN_UP:
-			if ((LH_Command != old_LH_Command) & LH_NOT_LIMIT)
+			LH_GO_UP();
+			if (!LH_NOT_LIMIT)
 			{
-				LH_GO_UP();
-			}
-			else
-			{
-				LH_State = LH_STATE_SPIN_OK;
+				LH_State = LH_STATE_STOP;
 			}
 			break;
 		case LH_STATE_SPIN_DOWN:
-			if ((LH_Command != old_LH_Command) & LH_NOT_LIMIT)
+			LH_GO_DOWN();
+			if (!LH_NOT_LIMIT)
 			{
-				LH_GO_DOWN();
-			}
-			else
-			{
-				LH_State = LH_STATE_SPIN_OK;
+				LH_State = LH_STATE_STOP;
 			}
 			break;
 		case LH_STATE_STOP:
-			LH_State = LH_STATE_SPIN_OK;
+			LH_STOP;
+			LH_State = LH_STATE_IDLE;
 			break;
 		case LH_STATE_SPIN_OK:
 			LH_Time = 0;
@@ -298,6 +299,16 @@ void leftHandWork()
 			break;
 		case LH_STATE_IDLE:
 			LH_Time = 0;
+			if ((LH_NOT_LIMIT || LH_IS_NEW_CMD) & LEFTHANDUP)
+			{
+				LH_State = LH_STATE_SPIN_UP;
+				old_LH_Command = LH_Command;
+			}
+			if ((LH_NOT_LIMIT || LH_IS_NEW_CMD) & LEFTHANDDOWN)
+			{
+				LH_State = LH_STATE_SPIN_DOWN;
+				old_LH_Command = LH_Command;
+			}
 			break;
 	}
 	old_LH_State = LH_State;
