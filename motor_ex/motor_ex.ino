@@ -10,11 +10,13 @@
 // #define M1AEN PA3 // 25 -> 2
 // #define M1BEN PA4 // 26 -> 3 (IN B on scheme)
 
-#define LFTSTSWPORT PB0
-#define RGTSTSWPORT PB1
+#define LFTSTSWPIN PB0
+#define RGTSTSWPIN PB1
 
-#define LH_NOT_LIMIT PINB & _BV(LFTSTSWPORT) == 1
-#define RH_NOT_LIMIT PINB & _BV(RGTSTSWPORT) == 1
+#define LH_NOT_LIMIT (PINB & _BV(LFTSTSWPIN)) == 1
+#define LH_LIMIT !LH_NOT_LIMIT
+#define RH_NOT_LIMIT (PINB & _BV(RGTSTSWPIN)) == 1
+#define RH_LIMIT (PINB & _BV(RGTSTSWPIN)) == 0
 
 #define M2AIN PC4 // 33 -> 1
 #define M2BIN PC3 // 34 -> 6
@@ -54,7 +56,7 @@
 #define LEFTHANDSTOP 16738455
 #define NOCMD 0x00
 
-#define LH_IS_NEW_CMD (LH_Command != old_LH_Command) & !LH_NOT_LIMIT
+#define LH_IS_NEW_CMD (LH_Command != old_LH_Command)
 
 GY_85 GY85;
 
@@ -83,15 +85,16 @@ typedef enum {
 	LH_STATE_GO_DOWN,
 	LH_STATE_SPIN_UP,
 	LH_STATE_SPIN_DOWN,
+	LH_STATE_BEGIN_SPIN_UP,
+	LH_STATE_BEGIN_SPIN_DOWN,
 	LH_STATE_STOP,
-	LH_STATE_SPIN_OK,
 	LH_STATE_SPIN_FAIL,
 	LH_STATE_IDLE
 } LH_State_t;
 
 volatile LH_State_t LH_State = LH_STATE_INIT;
-volatile uint8_t LH_Command, old_LH_Command = 0;
-volatile uint16_t LH_Time = 0;
+volatile uint32_t LH_Command, old_LH_Command = 0;
+// volatile uint16_t LH_Time = 0;
 volatile LH_State_t old_LH_State = NULL;
 
 
@@ -223,7 +226,7 @@ void setup()
 	TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
 
 	DDRA |= _BV(M1AIN) | _BV(M1BIN) | _BV(M1PWM);
-	DDRB |= _BV(LFTSTSWPORT) | _BV(RGTSTSWPORT);
+	DDRB |= _BV(LFTSTSWPIN) | _BV(RGTSTSWPIN);
 	DDRC |= _BV(M2AIN) | _BV(M2BIN) | _BV(M2PWM);
 	DDRL |= _BV(S0TRI) | _BV(S1TRI) | _BV(S2TRI) | _BV(S3TRI) | _BV(RHUP) | _BV(LHUP) | _BV(RHDOWN) | _BV(LHDOWN);
 	DDRG |= _BV(RIGHTHAND) | _BV(LEFTHAND);
@@ -260,53 +263,78 @@ void leftHandWork()
 	switch (LH_State)
 	{
 		case LH_STATE_INIT:
-			LH_Time = 0;
+			//Serial.println("LH_STATE_INIT");
+			// LH_Time = 0;
 			LH_State = LH_STATE_GO_DOWN;
 			break;
 		case LH_STATE_GO_DOWN:
+			//Serial.println("LH_STATE_GO_DOWN");
 			old_LH_Command = LEFTHANDDOWN;
 			LH_GO_DOWN();
-		  if (!LH_NOT_LIMIT)
+			Serial.println(LH_LIMIT);
+			Serial.println(LH_NOT_LIMIT);
+		 	if (LH_LIMIT)
 		  {
+				//Serial.println("LH_GO_DOWN");
 		  	LH_State = LH_STATE_STOP;
 		  }
+		  
 			break;
 		case LH_STATE_SPIN_UP:
+			//Serial.println("LH_STATE_SPIN_UP");
 			LH_GO_UP();
-			if (!LH_NOT_LIMIT)
+			if (LH_LIMIT)
 			{
+				//Serial.println("LH_SPIN_UP");
 				LH_State = LH_STATE_STOP;
 			}
 			break;
 		case LH_STATE_SPIN_DOWN:
+			//Serial.println("LH_STATE_SPIN_DOWN");
 			LH_GO_DOWN();
-			if (!LH_NOT_LIMIT)
+			if (LH_LIMIT)
 			{
+				//Serial.println("LH_SPIN_DOWN");
 				LH_State = LH_STATE_STOP;
 			}
 			break;
-		case LH_STATE_STOP:
-			LH_STOP;
-			LH_State = LH_STATE_IDLE;
-			break;
-		case LH_STATE_SPIN_OK:
-			LH_Time = 0;
-			LH_STOP;
-			LH_State = LH_STATE_IDLE;
-			LH_Command = 0;
-			break;
-		case LH_STATE_SPIN_FAIL:
-			break;
-		case LH_STATE_IDLE:
-			LH_Time = 0;
-			if ((LH_NOT_LIMIT || LH_IS_NEW_CMD) & LEFTHANDUP)
+		case LH_STATE_BEGIN_SPIN_UP:
+			LH_GO_UP();
+			if (LH_NOT_LIMIT)
 			{
 				LH_State = LH_STATE_SPIN_UP;
-				old_LH_Command = LH_Command;
 			}
-			if ((LH_NOT_LIMIT || LH_IS_NEW_CMD) & LEFTHANDDOWN)
+			break;
+		case LH_STATE_BEGIN_SPIN_DOWN:
+			LH_GO_DOWN();
+			if (LH_NOT_LIMIT)
 			{
 				LH_State = LH_STATE_SPIN_DOWN;
+			}
+			break;
+		case LH_STATE_STOP:
+			// Serial.println("LH_STATE_STOP");
+			LH_STOP; //Serial.println("LH_STOP");
+			LH_State = LH_STATE_IDLE;
+			break;
+		case LH_STATE_SPIN_FAIL:
+			// Serial.println("LH_STATE_SPIN_FAIL");
+			break;
+		case LH_STATE_IDLE:
+			// Serial.println("LH_STATE_IDLE");
+			// LH_Time = 0;
+			// Serial.print(LH_IS_NEW_CMD);Serial.print(" ");
+			// Serial.print(LH_NOT_LIMIT);Serial.print(" ");
+			// Serial.print(LH_Command);
+			// Serial.println("");
+			if ((LH_IS_NEW_CMD) & (LH_Command == LEFTHANDUP))
+			{
+				LH_State = LH_STATE_BEGIN_SPIN_UP;
+				old_LH_Command = LH_Command;
+			}
+			if ((LH_IS_NEW_CMD) & (LH_Command == LEFTHANDDOWN))
+			{
+				LH_State = LH_STATE_BEGIN_SPIN_DOWN;
 				old_LH_Command = LH_Command;
 			}
 			break;
@@ -342,7 +370,11 @@ void loop()
 		// Serial.print("\tz "); 		Serial.print(z);
 		Serial.print("\tlh_state "); 		Serial.print(LH_State);
 		Serial.print("\tlh_cmd "); 		Serial.print(LH_Command);
-		Serial.print("\tlh_limit "); 		Serial.print(LH_NOT_LIMIT);
+		Serial.print("\tlh_old_cmd "); 		Serial.print(old_LH_Command);
+		Serial.print("\tlh_not_limit "); 		Serial.print(LH_NOT_LIMIT);
+		// (LH_Command != old_LH_Command) & !LH_NOT_LIMIT
+		Serial.print("\tlh_is_new_cmd "); 		Serial.print(LH_IS_NEW_CMD);
+		Serial.print("\tlh_up "); 		Serial.print(LEFTHANDUP);
 		// Serial.print("\tlh_cmd "); 		Serial.print(LH_Command);
 
 		Serial.print("\tcmd ");     Serial.print(cmd);
