@@ -30,8 +30,8 @@
 #define S2TRI PL2
 #define S3TRI PL3
 
-#define RH_GO_UP PORTL |= _BV(RHUP)
-#define RH_GO_DOWN PORTL |= _BV(RHDOWN)
+//#define RH_GO_UP PORTL |= _BV(RHUP)
+//#define RH_GO_DOWN PORTL |= _BV(RHDOWN)
 #define LH_STOP PORTG &= ~_BV(LEFTHAND)
 #define RH_STOP PORTG &= ~_BV(RIGHTHAND)
 
@@ -58,6 +58,7 @@
 #define NOCMD 0x00
 
 #define LH_IS_NEW_CMD (LH_Command != old_LH_Command)
+#define RH_IS_NEW_CMD (RH_Command != old_RH_Command)
 
 GY_85 GY85;
 
@@ -81,24 +82,22 @@ decode_results results;
 
 float trg_spd = 0;
 
-typedef enum {
-	LH_STATE_INIT,
-	LH_STATE_GO_DOWN,
-	LH_STATE_SPIN_UP,
-	LH_STATE_SPIN_DOWN,
-	LH_STATE_BEGIN_SPIN_UP,
-	LH_STATE_BEGIN_SPIN_DOWN,
-	LH_STATE_STOP,
-	LH_STATE_SPIN_FAIL,
-	LH_STATE_IDLE
-} LH_State_t;
+typedef enum HAND_{
+	HAND_STATE_INIT,
+	HAND_STATE_GO_DOWN,
+	HAND_STATE_SPIN_UP,
+	HAND_STATE_SPIN_DOWN,
+	HAND_STATE_BEGIN_SPIN_UP,
+	HAND_STATE_BEGIN_SPIN_DOWN,
+	HAND_STATE_STOP,
+	HAND_STATE_SPIN_FAIL,
+	HAND_STATE_IDLE
+} State_t;
 
-volatile LH_State_t LH_State = LH_STATE_INIT;
-volatile uint32_t LH_Command, old_LH_Command = 0;
-// volatile uint16_t LH_Time = 0;
-volatile LH_State_t old_LH_State = NULL;
-
-
+volatile State_t LH_State, RH_State = HAND_STATE_INIT;
+volatile uint32_t LH_Command, old_LH_Command, RH_Command, old_RH_Command = 0;
+volatile uint16_t LH_Time, RH_Time = 0;
+volatile State_t old_LH_State, old_RH_State = NULL;
 
 // DDRF |= (1 << M1PWM);
 // DDRK |= (1 << M2PWM);
@@ -163,35 +162,23 @@ void process_IR_cmd(unsigned long cmd)
 			trg_spd = 0;
 			z = 0;
 			break;
-		// case RIGHTHANDUP:
-		// 	RH_State = RH_STATE_SPIN_UP;
-		// 	old_LH_Command = LH_Command;
-		// 	LH_Command = RIGHTHANDUP;
-		// 	break;
-		// case RIGHTHANDDOWN:
-		// 	RH_State = RH_STATE_SPIN_DOWN;
-		// 	old_LH_Command = LH_Command;
-		// 	LH_Command = RIGHTHANDDOWN;
-		// 	break;
-		// case RIGHTHANDSTOP:
-		// 	RH_State = RH_STATE_STOP;
-		// 	old_LH_Command = LH_Command;
-		// 	LH_Command = RIGHTHANDSTOP;
-		// 	break;
 		case LEFTHANDUP:
-			// LH_State = LH_STATE_SPIN_UP;
-			// old_LH_Command = LH_Command;
 			LH_Command = LEFTHANDUP;
 			break;
 		case LEFTHANDDOWN:
-			// LH_State = LH_STATE_SPIN_DOWN;
-			// old_LH_Command = LH_Command;
 			LH_Command = LEFTHANDDOWN;
 			break;
 		case LEFTHANDSTOP:
-			// LH_State = LH_STATE_STOP;
-			// old_LH_Command = LH_Command;
-			LH_Command = LEFTHANDSTOP;
+			RH_Command = LEFTHANDSTOP;
+			break;
+		case RIGHTHANDUP:
+			RH_Command = RIGHTHANDUP;
+			break;
+		case RIGHTHANDDOWN:
+			RH_Command = RIGHTHANDDOWN;
+			break;
+		case RIGHTHANDSTOP:
+			RH_Command = RIGHTHANDSTOP;
 			break;
 	}
 	z = min(max(-180, z), 180);
@@ -239,6 +226,9 @@ void setup()
 void LH_GO_UP() {	PORTL |= _BV(LHUP); PORTL &= ~_BV(LHDOWN); PORTG |= _BV(LEFTHAND); }
 void LH_GO_DOWN() {  PORTL |= _BV(LHDOWN); PORTL &= ~_BV(LHUP); PORTG |= _BV(LEFTHAND); }
 
+void RH_GO_UP() {	PORTL |= _BV(RHUP); PORTL &= ~_BV(RHDOWN); PORTG |= _BV(RIGHTHAND); }
+void RH_GO_DOWN() {  PORTL |= _BV(RHDOWN); PORTL &= ~_BV(RHUP); PORTG |= _BV(RIGHTHAND); }
+
 unsigned long readIRC()
 {
 	unsigned long res = NOCMD;
@@ -251,58 +241,124 @@ unsigned long readIRC()
 	return res;
 }
 
+void rigthHandWork()
+{
+	switch (RH_State)
+	{
+		case HAND_STATE_INIT:
+			Serial.print("I");
+			RH_Time = 0;
+			RH_State = HAND_STATE_GO_DOWN;
+		break;
+			case HAND_STATE_GO_DOWN:
+			Serial.print("V");
+			old_RH_Command = RIGHTHANDDOWN;
+			RH_GO_DOWN();
+			if (RH_LIMIT || (++RH_Time > 1000)) RH_State = HAND_STATE_STOP;
+			break;
+		case HAND_STATE_BEGIN_SPIN_DOWN:
+			Serial.print("v");
+			RH_GO_DOWN();
+			if (++RH_Time > 10000) RH_State = HAND_STATE_SPIN_FAIL;
+			if (RH_NOT_LIMIT) RH_State = HAND_STATE_SPIN_DOWN;
+			break;
+		case HAND_STATE_SPIN_DOWN:
+			Serial.print("V");
+			RH_GO_DOWN();
+			if (++RH_Time > 10000) RH_State = HAND_STATE_SPIN_FAIL;
+			if (RH_LIMIT) RH_State = HAND_STATE_STOP;
+			break;
+		case HAND_STATE_BEGIN_SPIN_UP:
+			Serial.print("^");
+			RH_GO_UP();
+			if (++RH_Time > 10000) RH_State = HAND_STATE_SPIN_FAIL;
+			if (RH_NOT_LIMIT) RH_State = HAND_STATE_SPIN_UP;
+			break;
+		case HAND_STATE_SPIN_UP:
+			Serial.print("A");
+			RH_GO_UP();
+			if (++RH_Time > 10000) RH_State = HAND_STATE_SPIN_FAIL;
+			if (RH_LIMIT) RH_State = HAND_STATE_STOP;
+			break;
+		case HAND_STATE_STOP:
+			Serial.print("-");
+			RH_STOP;
+			RH_Time = 0;
+			RH_State = HAND_STATE_IDLE;
+			break;
+		case HAND_STATE_SPIN_FAIL:
+			RH_STOP;
+			RH_Time = 0;
+			break;
+		case HAND_STATE_IDLE:
+		// RH_Time = 0;
+			if ((RH_IS_NEW_CMD) & (RH_Command == RIGHTHANDUP))
+			{
+				RH_State = HAND_STATE_BEGIN_SPIN_UP;
+				old_RH_Command = RH_Command;
+			}
+			if ((RH_IS_NEW_CMD) & (RH_Command == RIGHTHANDDOWN))
+			{
+				RH_State = HAND_STATE_BEGIN_SPIN_DOWN;
+				old_RH_Command = RH_Command;
+			}
+			break;
+	}
+	old_RH_State = RH_State;
+}
+
 
 void leftHandWork()
 {
 	switch (LH_State)
 	{
-		case LH_STATE_INIT:
-      Serial.print("I");
-			LH_State = LH_STATE_GO_DOWN;
-			break;
-		case LH_STATE_GO_DOWN:
-      Serial.print("V");
+		case HAND_STATE_INIT:
+			Serial.print("I");
+			LH_State = HAND_STATE_GO_DOWN;
+		break;
+			case HAND_STATE_GO_DOWN:
+			Serial.print("V");
 			old_LH_Command = LEFTHANDDOWN;
 			LH_GO_DOWN();
-		 	if (LH_LIMIT) LH_State = LH_STATE_STOP;
+			if (LH_LIMIT) LH_State = HAND_STATE_STOP;
 			break;
-    case LH_STATE_BEGIN_SPIN_DOWN:
-      Serial.print("v");
-      LH_GO_DOWN();
-      if (LH_NOT_LIMIT) LH_State = LH_STATE_SPIN_DOWN;
-      break;
-		case LH_STATE_SPIN_DOWN:
-      Serial.print("V");
+		case HAND_STATE_BEGIN_SPIN_DOWN:
+			Serial.print("v");
 			LH_GO_DOWN();
-			if (LH_LIMIT) LH_State = LH_STATE_STOP;
+			if (LH_NOT_LIMIT) LH_State = HAND_STATE_SPIN_DOWN;
 			break;
-		case LH_STATE_BEGIN_SPIN_UP:
-      Serial.print("^");
+		case HAND_STATE_SPIN_DOWN:
+			Serial.print("V");
+			LH_GO_DOWN();
+			if (LH_LIMIT) LH_State = HAND_STATE_STOP;
+			break;
+		case HAND_STATE_BEGIN_SPIN_UP:
+			Serial.print("^");
 			LH_GO_UP();
-			if (LH_NOT_LIMIT) LH_State = LH_STATE_SPIN_UP;
+			if (LH_NOT_LIMIT) LH_State = HAND_STATE_SPIN_UP;
 			break;
-    case LH_STATE_SPIN_UP:
-      Serial.print("A");
-      LH_GO_UP();
-      if (LH_LIMIT) LH_State = LH_STATE_STOP;
-      break;
-		case LH_STATE_STOP:
-      Serial.print("-");
-			LH_STOP; 
-			LH_State = LH_STATE_IDLE;
+		case HAND_STATE_SPIN_UP:
+			Serial.print("A");
+			LH_GO_UP();
+			if (LH_LIMIT) LH_State = HAND_STATE_STOP;
 			break;
-		case LH_STATE_SPIN_FAIL:
+		case HAND_STATE_STOP:
+			Serial.print("-");
+			LH_STOP;
+			LH_State = HAND_STATE_IDLE;
 			break;
-		case LH_STATE_IDLE:
-			// LH_Time = 0;
+		case HAND_STATE_SPIN_FAIL:
+			break;
+		case HAND_STATE_IDLE:
+		// LH_Time = 0;
 			if ((LH_IS_NEW_CMD) & (LH_Command == LEFTHANDUP))
 			{
-				LH_State = LH_STATE_BEGIN_SPIN_UP;
+				LH_State = HAND_STATE_BEGIN_SPIN_UP;
 				old_LH_Command = LH_Command;
 			}
 			if ((LH_IS_NEW_CMD) & (LH_Command == LEFTHANDDOWN))
 			{
-				LH_State = LH_STATE_BEGIN_SPIN_DOWN;
+				LH_State = HAND_STATE_BEGIN_SPIN_DOWN;
 				old_LH_Command = LH_Command;
 			}
 			break;
@@ -336,13 +392,12 @@ void loop()
 		// Serial.print("\trgt_pwm "); Serial.print(rgt_pwm);
 		// Serial.print("\ttrg_spd "); Serial.print(trg_spd);
 		// Serial.print("\tz "); 		Serial.print(z);
-		Serial.print("\tlh_state "); 		Serial.print(LH_State);
-		Serial.print("\tlh_cmd "); 		Serial.print(LH_Command);
-		Serial.print("\tlh_old_cmd "); 		Serial.print(old_LH_Command);
-		Serial.print("\tlh_not_limit "); 		Serial.print(LH_NOT_LIMIT);
+		Serial.print("\trh_state "); 		Serial.print(RH_State);
+		Serial.print("\trh_cmd "); 		Serial.print(RH_Command);
+		Serial.print("\trh_old_cmd "); 		Serial.print(RH_Command);
+		Serial.print("\trh_not_limit "); 		Serial.print(RH_NOT_LIMIT);
 		// (LH_Command != old_LH_Command) & !LH_NOT_LIMIT
-		Serial.print("\tlh_is_new_cmd "); 		Serial.print(LH_IS_NEW_CMD);
-		Serial.print("\tlh_up "); 		Serial.print(LEFTHANDUP);
+		Serial.print("\trh_is_new_cmd "); 		Serial.print(RH_IS_NEW_CMD);
 		// Serial.print("\tlh_cmd "); 		Serial.print(LH_Command);
 
 		Serial.print("\tcmd ");     Serial.print(cmd);
@@ -380,7 +435,6 @@ ISR(TIMER1_COMPA_vect)
 {
 	TCNT1 = 0;
 	leftHandWork();
+	rigthHandWork();
 	// legsWork();
 }
-
-
