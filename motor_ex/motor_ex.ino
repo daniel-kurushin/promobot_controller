@@ -1,7 +1,8 @@
+#include <IRremoteInt.h>
+#include <IRremote.h>
 #include <Wire.h>
 #include <GY_85.h>
 #include <math.h>
-#include <IRremote.h>
 #define IR_USE_TIMER2
 
 #define M1AIN PA0 // 22 -> 1 (IN A on scheme)
@@ -234,13 +235,6 @@ void setup()
 	interrupts();             // enable all interrupts
 }
 
-void LH_Setup()
-{
-	while (LH_NOT_LIMIT) {
-		LH_GO_DOWN();
-	}
-	LH_STOP;
-}
 
 void LH_GO_UP() {	PORTL |= _BV(LHUP); PORTL &= ~_BV(LHDOWN); PORTG |= _BV(LEFTHAND); }
 void LH_GO_DOWN() {  PORTL |= _BV(LHDOWN); PORTL &= ~_BV(LHUP); PORTG |= _BV(LEFTHAND); }
@@ -263,70 +257,44 @@ void leftHandWork()
 	switch (LH_State)
 	{
 		case LH_STATE_INIT:
-			//Serial.println("LH_STATE_INIT");
-			// LH_Time = 0;
+      Serial.print("I");
 			LH_State = LH_STATE_GO_DOWN;
 			break;
 		case LH_STATE_GO_DOWN:
-			//Serial.println("LH_STATE_GO_DOWN");
+      Serial.print("V");
 			old_LH_Command = LEFTHANDDOWN;
 			LH_GO_DOWN();
-			Serial.println(LH_LIMIT);
-			Serial.println(LH_NOT_LIMIT);
-		 	if (LH_LIMIT)
-		  {
-				//Serial.println("LH_GO_DOWN");
-		  	LH_State = LH_STATE_STOP;
-		  }
-		  
+		 	if (LH_LIMIT) LH_State = LH_STATE_STOP;
 			break;
-		case LH_STATE_SPIN_UP:
-			//Serial.println("LH_STATE_SPIN_UP");
-			LH_GO_UP();
-			if (LH_LIMIT)
-			{
-				//Serial.println("LH_SPIN_UP");
-				LH_State = LH_STATE_STOP;
-			}
-			break;
+    case LH_STATE_BEGIN_SPIN_DOWN:
+      Serial.print("v");
+      LH_GO_DOWN();
+      if (LH_NOT_LIMIT) LH_State = LH_STATE_SPIN_DOWN;
+      break;
 		case LH_STATE_SPIN_DOWN:
-			//Serial.println("LH_STATE_SPIN_DOWN");
+      Serial.print("V");
 			LH_GO_DOWN();
-			if (LH_LIMIT)
-			{
-				//Serial.println("LH_SPIN_DOWN");
-				LH_State = LH_STATE_STOP;
-			}
+			if (LH_LIMIT) LH_State = LH_STATE_STOP;
 			break;
 		case LH_STATE_BEGIN_SPIN_UP:
+      Serial.print("^");
 			LH_GO_UP();
-			if (LH_NOT_LIMIT)
-			{
-				LH_State = LH_STATE_SPIN_UP;
-			}
+			if (LH_NOT_LIMIT) LH_State = LH_STATE_SPIN_UP;
 			break;
-		case LH_STATE_BEGIN_SPIN_DOWN:
-			LH_GO_DOWN();
-			if (LH_NOT_LIMIT)
-			{
-				LH_State = LH_STATE_SPIN_DOWN;
-			}
-			break;
+    case LH_STATE_SPIN_UP:
+      Serial.print("A");
+      LH_GO_UP();
+      if (LH_LIMIT) LH_State = LH_STATE_STOP;
+      break;
 		case LH_STATE_STOP:
-			// Serial.println("LH_STATE_STOP");
-			LH_STOP; //Serial.println("LH_STOP");
+      Serial.print("-");
+			LH_STOP; 
 			LH_State = LH_STATE_IDLE;
 			break;
 		case LH_STATE_SPIN_FAIL:
-			// Serial.println("LH_STATE_SPIN_FAIL");
 			break;
 		case LH_STATE_IDLE:
-			// Serial.println("LH_STATE_IDLE");
 			// LH_Time = 0;
-			// Serial.print(LH_IS_NEW_CMD);Serial.print(" ");
-			// Serial.print(LH_NOT_LIMIT);Serial.print(" ");
-			// Serial.print(LH_Command);
-			// Serial.println("");
 			if ((LH_IS_NEW_CMD) & (LH_Command == LEFTHANDUP))
 			{
 				LH_State = LH_STATE_BEGIN_SPIN_UP;
