@@ -30,6 +30,10 @@
 #define S2TRI PL2
 #define S3TRI PL3
 
+#define AIN PE5
+#define VIN PG5
+#define MOSFET PE3
+
 //#define RH_GO_UP PORTL |= _BV(RHUP)
 //#define RH_GO_DOWN PORTL |= _BV(RHDOWN)
 #define LH_STOP PORTG &= ~_BV(LEFTHAND)
@@ -101,7 +105,7 @@ volatile uint32_t LH_Command, old_LH_Command, RH_Command, old_RH_Command = 0;
 volatile uint16_t LH_Time, RH_Time = 0;
 volatile State_t old_LH_State, old_RH_State = NULL;
 volatile uint8_t hands_pwm = 0;
-
+volatile uint8_t adc_val = 0;
 
 // DDRF |= (1 << M1PWM);
 // DDRK |= (1 << M2PWM);
@@ -117,6 +121,21 @@ volatile uint8_t hands_pwm = 0;
 
 // // Clear OC0B and OC0A(!!!) output on compare match, upwards counting.
 // TCCR0A |= (1 << COM0A0) | (1 << COM0B0);
+
+void measure_v()
+{
+	
+}
+
+void measure_a()
+{
+
+}
+
+void charge()
+{
+
+}
 
 void lft_stop()
 {
@@ -222,6 +241,22 @@ void setup()
 	DDRC |= _BV(M2AIN) | _BV(M2BIN) | _BV(M2PWM);
 	DDRL |= _BV(S0TRI) | _BV(S1TRI) | _BV(S2TRI) | _BV(S3TRI) | _BV(RHUP) | _BV(LHUP) | _BV(RHDOWN) | _BV(LHDOWN);
 	DDRG |= _BV(RIGHTHAND) | _BV(LEFTHAND);
+
+	//ADC setup
+	ADCSRA |= (1 << ADPS2)
+         | (1 << ADPS1)
+         | (1 << ADPS0); // Set ADC prescaler to 128 - 125KHz sample rate @ 16MHz
+  	// ADMUX |= (1 << REFS0); // Set ADC reference to AVCC
+
+    ADMUX |= (1 << ADLAR); // Left adjust ADC result to allow easy 8 bit reading
+	ADCSRA |= (1 << ADATE);
+	ADCSRA |= (1 << ADEN);  // Enable ADC
+	ADCSRA |= (1 << ADIE);  // Enable ADC Interrupt
+
+	ADMUX &= ~(1 << MUX0)
+	    &  ~(1 << MUX1)
+	    &  ~(1 << MUX2)
+	    &  ~(1 << MUX3);
 
 	interrupts();             // enable all interrupts
 }
@@ -406,7 +441,7 @@ void loop()
 		Serial.print("\trh_not_limit "); 		Serial.print(RH_NOT_LIMIT);
 		// (LH_Command != old_LH_Command) & !LH_NOT_LIMIT
 		Serial.print("\trh_is_new_cmd "); 		Serial.print(RH_IS_NEW_CMD);
-		// Serial.print("\tlh_cmd "); 		Serial.print(LH_Command);
+		Serial.print("\tadc_val "); 		Serial.print(adc_val);
 
 		Serial.print("\tcmd ");     Serial.print(cmd);
 		Serial.println();
@@ -460,3 +495,12 @@ ISR(TIMER1_COMPA_vect)
 	handsWork();
 	// legsWork();
 }
+
+ISR(ADC_vect) {
+	ADCSRA |= (1 << ADSC);  // Start A2D Conversions
+	while(!(ADCSRA & (1<<ADIF)));
+	ADCSRA|=(1<<ADIF);
+	adc_val = ADCH;
+}
+
+
