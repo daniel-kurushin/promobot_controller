@@ -1,0 +1,27 @@
+1: NC
+2: head servo data
+3: NC
+4: right hand servo data
+5: left hand servo data
+6: lights
+7: lights
+8: + hand motor
+9: hand motor switches
+10: hand motor switches
+
+11: NC
+12: NC
+13: NC
+14: + servo
+15: - servo
+16: hand motor switches
+17: lights
+18: + hand motor
+19: - hand motor 
+20: - hand motor
+
+Body side:
+1		  - 		10
+|.|.|.|.|.|.|.|.|.|.|
+|.|.|.|.|.|.|.|.|.|.|
+11					20

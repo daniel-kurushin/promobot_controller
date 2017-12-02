@@ -46,7 +46,7 @@
 #define RHDOWN PL6 // 43
 #define LHDOWN PL7 // 42
 
-#define SECHO PB0
+// #define SECHO PB0
 
 #define LEFT  16716015
 #define RIGHT 16734885
