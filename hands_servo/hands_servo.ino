@@ -1,26 +1,43 @@
-/* Sweep
- by BARRAGAN <http://barraganstudio.com>
- This example code is in the public domain.
+#include <Wire.h>
+#include <Multiservo.h>
+ 
+Multiservo myservo0; //test
+Multiservo myservo1; // left hand
+Multiservo myservo2; // head 
+Multiservo myservo3; // right hand
+Multiservo myservo4; // head up/down
 
- modified 8 Nov 2013
- by Scott Fitzgerald
- http://www.arduino.cc/en/Tutorial/Sweep
-*/
-
-#include <Servo.h>
-
-Servo myservo;  // create servo object to control a servo
-// twelve servo objects can be created on most boards
-
-int pos = 0;    // variable to store the servo position
-
-void setup() {
-  myservo.attach(9);  // attaches the servo on pin 9 to the servo object
+int pos = 0;
+int num = 0;
+void setup(void) {
+  Wire.begin();
+  Serial.begin(9600);
+  myservo0.attach(0);
+  myservo1.attach(16);
+  myservo2.attach(15);
+  myservo3.attach(14);
+  myservo4.attach(13);
 }
-
-void loop() {
-  myservo.write(100);
-  delay(500);
-  myservo.write(140);
-  delay(500);
+ 
+void loop(void) {
+  if(Serial.available() > 0)
+  {
+    num = Serial.parseInt();
+    pos = Serial.parseInt();
+    Serial.println(num);
+    Serial.println(pos);
+    switch (num)
+    {
+      case 0:
+        myservo0.write(pos);
+        break;
+        // other servo motors
+      case 4:
+        myservo4.write(pos);
+        break;
+      default:
+        Serial.println("[ERROR] No such number");
+    }
+    delay(1000);
+  }
 }

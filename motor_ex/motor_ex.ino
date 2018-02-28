@@ -46,6 +46,11 @@
 #define RHDOWN PL6 // 43
 #define LHDOWN PL7 // 42
 
+#define VCC_RELAY PB4 //5V
+#define MOTORS_RELAY PB5 //12V
+#define LCD_RELAY PB6 //12V
+#define COMP_RELAY PB7 //12V
+
 // #define SECHO PB0
 
 #define LEFT  16716015
@@ -271,8 +276,6 @@ void RH_GO_DOWN() {  PORTL |= _BV(RHDOWN); PORTL &= ~_BV(RHUP); PORTG |= _BV(RIG
 unsigned long readIRC()
 {
 	unsigned long res = NOCMD;
-	// digitalWrite(13,1);
-	// read ir reciever
 	if (irrecv.decode(&results)) {
 		res = results.value;
 		irrecv.resume();
@@ -414,18 +417,14 @@ void loop()
 {
 	pure_gz = GY85.gyro_z(GY85.readGyro());
 	gz += (pure_gz - delta) * dt;
-	// Serial.println("1");
 	cmd = readIRC();
-	// Serial.println("2");
 	if (cmd != NOCMD)
 	{
 		process_IR_cmd(cmd);
-		// Serial.println("3");
 	}
-
+	
 	lft_frw(trg_spd + Kp * atan(z - gz));
 	rgt_frw(trg_spd - Kp * atan(z - gz));
-	// Serial.println("4");
 	if(++tme > 100)
 	{
 		tme = 0;
