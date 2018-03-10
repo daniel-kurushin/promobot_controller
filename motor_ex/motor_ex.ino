@@ -93,7 +93,7 @@ decode_results results;
 
 float trg_spd = 0;
 
-typedef enum HAND_{
+typedef enum HAND_STATE {
 	HAND_STATE_INIT,
 	HAND_STATE_GO_DOWN,
 	HAND_STATE_SPIN_UP,
