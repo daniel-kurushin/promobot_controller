@@ -1,111 +1,95 @@
 #include "legs.hpp"
 #include "Arduino.h"
+#include "pindefines.hpp"
+#include <Wire.h>
+#include <GY_85.h>
+#include <math.h>
 
+/* legs */
+float trg_spd = 0;
+float gz = 0;
+float pure_gz = 0;
+float z = 0;
+float dt = 0.01;
+float delta = 0.0;
+float old_z = 0;
+float new_z = 0;
+float Kp = 10;
+uint16_t tme = 0;
+uint8_t lft_pwm = 0;
+uint8_t rgt_pwm = 0;
+
+int trg_course = 0;
+int trg_distance = 0;
 int course = 0;
 int distance = 0;
+int direction = 0; // 0 (forward) or 1 (back) TODO: make constants
 uint8_t last_cmd = 0;
-uint8_t state = 0;
+uint8_t state = 0; // 1 (err) or 0 (ok) TODO: make constants
+int avg_pwm = 2;
+
+volatile uint8_t legs_cnt = 0;
+volatile uint8_t m1cnt = 0;
+volatile uint8_t m2cnt = 0;
 
 void processLegs(char *resp_buf, uint8_t cmd)
 {
 	switch (cmd)
 	{
-		case 21:
-			course = Serial.parseInt();
-			distance = Serial.parseInt();
+		case 21: // set course and distance
+			trg_course = Serial.parseInt();
+			trg_distance = Serial.parseInt();
+			direction = 0;
 			last_cmd = cmd;
-			// TODO: change this to recieve cmd from computer
-			switch (cmd)
+			if (0) // error state
 			{
-				case LEFT:
-					z -= 10;
-					break;
-				case RIGHT:
-					z += 10;
-					break;
-				case FWD:
-					trg_spd += 10;
-					break;
-				case BACK:
-					trg_spd -= 10;
-					break;
-				case STOP:
-					trg_spd = 0;
-					z = 0;
-					break;
+				state = 1;
 			}
-			z = min(max(-180, z), 180);
-			trg_spd = min(max(0, trg_spd), 255);
+			sprintf(resp_buf, "last_cmd: %d, state: %d", last_cmd, state);
 			break;
-		case 20:
+		case 20: // get state
+			// TODO: compute distance, course 
+			course = 0;
+			distance = 0;
+			last_cmd = cmd;
+			sprintf(resp_buf, "last_cmd: %d, avg_pwm: %d, state: %d, direction: %d, trg_course: %d, course: %d, tgr_distance: %d, distance: %d, lft_pwm: %d, rgt_pwm: %d",
+			                   last_cmd,     avg_pwm,     state,     direction,     trg_course,     course,     trg_distance,     distance,     lft_pwm,     rgt_pwm);
+			break;
+		case 22:
+			trg_course = Serial.parseInt();
+			trg_distance = Serial.parseInt();
+			direction = 1;
+			last_cmd = cmd;
+			if (0) // error state
+			{
+				state = 1;
+			}
+			sprintf(resp_buf, "last_cmd: %d, state: %d", last_cmd, state);
+			break;
+		case 23:
+			avg_pwm = 0;
+			if (0) // error state
+			{
+				state = 1;
+			}
+			last_cmd = cmd;
+			sprintf(resp_buf, "last_cmd: %d, state: %d, avg_pwm: %d", last_cmd, state, avg_pwm);
 			break;
 	}
-	sprintf(resp_buf, "%d %d %d %d", last_cmd, state, course, distance);
 }
 
 void legsWork()
 {
-	if (legs_cnt++ == 0)
+	float spd = avg_pwm * 1.3; // 1.3 depends on wheels radius
+	int dt = 1;
+	trg_distance -= spd * dt;
+	if (trg_distance > 10 && (last_cmd == 21 | last_cmd == 22)) // 10 should be constant
 	{
-		PORTA |= _BV(M1PWM);
-		PORTC |= _BV(M2PWM);
-		m1cnt = m2cnt = 0;
-	}
-	if (m1cnt++ > lft_pwm)
-	{
-		PORTA &= ~_BV(M1PWM);
-	}
-	if (m2cnt++ > rgt_pwm)
-	{
-		PORTC &= ~_BV(M2PWM);
+		avg_pwm = 2;
+	} else {
+		avg_pwm = 0;
 	}
 }
 
-void lft_stop()
-{
-	lft_pwm = 0;
-}
 
-void rgt_stop()
-{
-	rgt_pwm = 0;
-}
 
-void lft_frw(float spd) //TODO ; m/s!!!
-{
-	PORTA |= _BV(M1AIN);
-	PORTA &= ~_BV(M1BIN);
-
-	lft_pwm = (int) max(min(spd,255),0);
-	// OCR0A = lft_pwm;
-}
-
-void rgt_frw(float spd)
-{
-	PORTC |= _BV(M2AIN);
-	PORTC &= ~_BV(M2BIN);
-
-	rgt_pwm = (int) max(min(spd,255),0);
-	// analogWrite(M2PWM, rgt_pwm);
-}
-
-void legsLoop()
-{
-	// TODO: move to processLegs ?
-	pure_gz = GY85.gyro_z(GY85.readGyro());
-	gz += (pure_gz - delta) * dt;
-	cmd = readIRC();
-	if (cmd != NOCMD)
-	{
-		// get command ?
-	}
-	
-	lft_frw(trg_spd + Kp * atan(z - gz));
-	rgt_frw(trg_spd - Kp * atan(z - gz));
-	if(++tme > 100)
-	{
-		tme = 0;
-	}
-
-	delay(dt * 1000);
-}

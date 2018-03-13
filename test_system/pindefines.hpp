@@ -21,3 +21,11 @@
 #define M2AIN PC4 // 33 -> 1
 #define M2BIN PC3 // 34 -> 6
 #define M2PWM PC2 // 35 -> 5
+
+#define LFTSTSWPIN PB0
+#define RGTSTSWPIN PB1
+
+#define LH_NOT_LIMIT (PINB & _BV(LFTSTSWPIN)) == 1
+#define LH_LIMIT !LH_NOT_LIMIT
+#define RH_NOT_LIMIT (PINB & _BV(RGTSTSWPIN)) == 1
+#define RH_LIMIT !RH_NOT_LIMIT

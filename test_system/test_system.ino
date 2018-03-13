@@ -1,4 +1,4 @@
-#include "pindefines.h"
+#include "pindefines.hpp"
 #include "Arduino.h"
 #include "legs.hpp"
 #include "hands.hpp"
@@ -21,20 +21,6 @@ char cz[10] = "";
 #define CMD_STAT_ERR 0
 #define CMD_STAT_OK 1
 
-/* legs */
-float trg_spd = 0;
-float gz = 0;
-float pure_gz = 0;
-float z = 0;
-float dt = 0.01;
-float delta = 0.0;
-float old_z = 0;
-float new_z = 0;
-float Kp = 10;
-uint16_t tme = 0;
-uint8_t lft_pwm = 0;
-uint8_t rgt_pwm = 0;
-
 /**/
 uint32_t sys_state = 0;
 
@@ -43,7 +29,7 @@ uint16_t hands_state = 0x00;
 uint32_t comp_boot_time = 0;
 uint8_t sys = 0;
 uint16_t cmd = 0;
-char resp_buf[50];
+char resp_buf[160];
 
 void init_comp_relays()
 {
@@ -116,17 +102,17 @@ void setup()
   	lamps_init();
   	/* moved from motor_ex.ino */
   	Wire.begin();
-	GY85.init();
+	// GY85.init();
 	// irrecv.enableIRIn();
 
-	old_z = GY85.gyro_z(GY85.readGyro());
-	for (int i=0; i < 10; i++)
-	{
-		delay(300);
-		new_z = GY85.gyro_z(GY85.readGyro());
-		delta += new_z - old_z;
-	}
-	delta /= 10;
+	// old_z = GY85.gyro_z(GY85.readGyro());
+	// for (int i=0; i < 10; i++)
+	// {
+		// delay(300);
+		// new_z = GY85.gyro_z(GY85.readGyro());
+		// delta += new_z - old_z;
+	// }
+	// delta /= 10;
 
 	noInterrupts();           // disable all interrupts
 
@@ -207,6 +193,9 @@ void loop()
 			// 	break;
 		}
 		Serial.println(resp_buf);
+	} else {
+		legsWork();
+		handsWork();
 	}
 }
 
@@ -214,7 +203,7 @@ ISR(TIMER1_COMPA_vect)
 {
 	TCNT1 = 0;
 	// handsWork();
-	legsWork();
+	// legsWork();
 }
 
 	// switch (computer_state)
