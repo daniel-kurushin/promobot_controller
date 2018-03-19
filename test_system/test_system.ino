@@ -2,6 +2,7 @@
 #include "Arduino.h"
 #include "legs.hpp"
 #include "hands.hpp"
+#include "d_sensors.hpp"
 #include <Wire.h>
 #include <GY_85.h>
 #include <math.h>
@@ -30,6 +31,8 @@ uint32_t comp_boot_time = 0;
 uint8_t sys = 0;
 uint16_t cmd = 0;
 char resp_buf[160];
+
+volatile uint16_t s_distance = 0;
 
 void init_comp_relays()
 {
@@ -113,7 +116,7 @@ void setup()
 		// delta += new_z - old_z;
 	// }
 	// delta /= 10;
-
+  	ptme = 0;
 	noInterrupts();           // disable all interrupts
 
 	TCCR1A = 0;
@@ -125,8 +128,18 @@ void setup()
 	TCCR1B |= (1 << CS10);    // 1024 prescaler
 	TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
 
+	TCCR2A = 0;
+	TCCR2B = 0;
+	TCNT2  = 0;
+
+	OCR2A = 5;            // compare match register 16MHz/256/2Hz
+	TCCR2B |= (1 << WGM21);   // CTC mode
+	TCCR2B |= (1 << CS20);    // no prescaling
+	TIMSK2 |= (1 << OCIE2A);  // enable timer compare interrupt
+
 	DDRA |= _BV(M1AIN) | _BV(M1BIN) | _BV(M1PWM);
-	DDRB |= _BV(LFTSTSWPIN) | _BV(RGTSTSWPIN);
+	DDRB |= _BV(LFTSTSWPIN) | _BV(RGTSTSWPIN) | _BV(TRIG_PIN);
+	DDRB &= ~_BV(ECHO_PIN);
 	DDRC |= _BV(M2AIN) | _BV(M2BIN) | _BV(M2PWM);
 	// DDRL |= _BV(S0TRI) | _BV(S1TRI) | _BV(S2TRI) | _BV(S3TRI) | _BV(RHUP) | _BV(LHUP) | _BV(RHDOWN) | _BV(LHDOWN);
 	// DDRG |= _BV(RIGHTHAND) | _BV(LEFTHAND);
@@ -152,56 +165,68 @@ void setup()
 
 void loop()
 {
-	if (Serial.available())
-	{	
-		cmd = Serial.parseInt();
-		sys = cmd / 10;
-		switch(sys)
-		{
-			case 1:
-				processHands(resp_buf, cmd);
-				break;
-			case 2:
-				processLegs(resp_buf, cmd);
-				break;
-			// case 3:
-			// 	processHead(cmd);
-			// 	break;
-			// case 4:
-			// 	processPalms(cmd);
-			// 	break;
-			// case 5:
-			// 	processComp(cmd);
-			// 	break;
-			// case 6:
-			// 	processRedLamps(cmd);
-			// 	break;
-			// case 7:
-			// 	processWhiteLamps(cmd);
-			// 	break;
-			// case 8:
-			// 	processMotionSensor(cmd);
-			// 	break;
-			// case 9:
-			// 	processBottomDSs(cmd);
-			// 	break;
-			// case 10:
-			// 	processTopDS(cmd);
-			// 	break;
-			// case 11:
-			// 	processGyro(cmd);
-			// 	break;
-		}
-		Serial.println(resp_buf);
-	} else {
-		legsWork();
-		handsWork();
-	}
+	Serial.println(s_distance);
+	delay(500);
+	// if (Serial.available())
+	// {	
+	// 	cmd = Serial.parseInt();
+	// 	sys = cmd / 10;
+	// 	switch(sys)
+	// 	{
+	// 		case 1:
+	// 			processHands(resp_buf, cmd);
+	// 			break;
+	// 		case 2:
+	// 			processLegs(resp_buf, cmd);
+	// 			break;
+	// 		// case 3:
+	// 		// 	processHead(cmd);
+	// 		// 	break;
+	// 		// case 4:
+	// 		// 	processPalms(cmd);
+	// 		// 	break;
+	// 		// case 5:
+	// 		// 	processComp(cmd);
+	// 		// 	break;
+	// 		// case 6:
+	// 		// 	processRedLamps(cmd);
+	// 		// 	break;
+	// 		// case 7:
+	// 		// 	processWhiteLamps(cmd);
+	// 		// 	break;
+	// 		// case 8:
+	// 		// 	processMotionSensor(cmd);
+	// 		// 	break;
+	// 		// case 9:
+	// 		// 	processBottomDSs(cmd);
+	// 		// 	break;
+	// 		// case 10:
+	// 		// 	processTopDS(cmd);
+	// 		// 	break;
+	// 		// case 11:
+	// 		// 	processGyro(cmd);
+	// 		// 	break;
+	// 	}
+	// 	Serial.println(resp_buf);
+	// } else {
+	// 	legsWork();
+	// 	handsWork();
+	// }
 }
 
 ISR(TIMER1_COMPA_vect)
 {
 	TCNT1 = 0;
+	// handsWork();
+	// legsWork();
+}
+
+ISR(TIMER2_COMPA_vect)
+{
+	TCNT2 = 0;
+	// digitalWrite(13, !digitalRead(13));
+  	time++;
+	s_distance = sonarWork();
 	// handsWork();
 	// legsWork();
 }

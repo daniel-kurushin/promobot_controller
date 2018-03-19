@@ -2,11 +2,15 @@
 #include "hands.hpp"
 #include "Arduino.h"
 
-int hands_limit = 0;
-int hands_spin = 0;
-int hands_cnt = 0;
+int lft_hand_limit = 0;
+int rgt_hand_limit = 0;
+int lft_hand_spin = 0;
+int rgt_hand_spin = 0;
+int lft_hand_cnt = 0;
+int rgt_hand_cnt = 0;
 
-int hands_direction = 0; // 0 (up) or 1 (down)
+int lft_hand_direction = 0; // 0 (up) or 1 (down)
+int rgt_hand_direction = 0; // 0 (up) or 1 (down)
 int hands_pwm = 2;
 
 void processHands(char *resp_buf, int cmd)
@@ -15,12 +19,12 @@ void processHands(char *resp_buf, int cmd)
 	{
 		case 10: // get state
 			last_cmd = cmd;
-			sprintf(resp_buf, "last_cmd: %d, state: %d, hands_spin: %d, hands_direction: %d",
-			                   last_cmd,     state,     hands_spin,     hands_direction);
+			sprintf(resp_buf, "last_cmd: %d, state: %d, lft_hand_spin: %d, lft_hand_direction: %d, rgt_hand_spin: %d, rgt_hand_direction: %d",
+			                   last_cmd,     state,     lft_hand_spin,     lft_hand_direction,     rgt_hand_spin,     rgt_hand_direction);
 			break;
 		case 11: // right up
-			hands_direction = 0;
-			hands_limit = 0;
+			rgt_hand_direction = 0;
+			rgt_hand_limit = 0;
 			if (0) // error state
 			{
 				state = 1;
@@ -29,8 +33,8 @@ void processHands(char *resp_buf, int cmd)
 			sprintf(resp_buf, "last_cmd: %d, state: %d", last_cmd, state);
 			break;
 		case 12: // right down
-			hands_direction = 1;
-			hands_limit = 0;
+			rgt_hand_direction = 1;
+			rgt_hand_limit = 0;
 			if (0) // error state
 			{
 				state = 1;
@@ -39,7 +43,8 @@ void processHands(char *resp_buf, int cmd)
 			sprintf(resp_buf, "last_cmd: %d, state: %d", last_cmd, state);
 			break;
 		case 13: // left up
-			hands_limit = 0;
+			lft_hand_direction = 1;
+			lft_hand_limit = 0;
 			if (0) // error state
 			{
 				state = 1;
@@ -48,7 +53,8 @@ void processHands(char *resp_buf, int cmd)
 			sprintf(resp_buf, "last_cmd: %d, state: %d", last_cmd, state);
 			break;
 		case 14: // left down
-			hands_limit = 0;
+			lft_hand_direction = 0;		
+			lft_hand_limit = 0;
 			if (0) // error state
 			{
 				state = 1;
@@ -61,13 +67,32 @@ void processHands(char *resp_buf, int cmd)
 
 void handsWork()
 {
-	if (last_cmd == 11 & (!hands_limit & hands_cnt < 1000))
+	if (last_cmd == 11 | last_cmd == 12)
 	{
-		hands_spin = 1;
-		hands_cnt += hands_pwm;
-		Serial.println(hands_cnt);
-	} else {
-		hands_limit = 1;
-		hands_spin = 0;
+		if (!lft_hand_limit & lft_hand_cnt < 1000)
+		{
+			lft_hand_spin = 1;
+			lft_hand_cnt += hands_pwm;
+			Serial.println(lft_hand_cnt);
+		} else {
+			lft_hand_limit = 1;
+			lft_hand_spin = 0;
+			lft_hand_cnt = 0;
+		}
+	}
+	if (last_cmd == 13 | last_cmd == 14)
+	{
+		if (!rgt_hand_limit & rgt_hand_cnt < 1000)
+		{
+			rgt_hand_spin = 1;
+			rgt_hand_cnt += hands_pwm;
+			Serial.println(rgt_hand_cnt);
+		} else {
+			rgt_hand_limit = 1;
+			rgt_hand_spin = 0;
+			rgt_hand_cnt = 0;
+		}
 	}
 }
+
+
