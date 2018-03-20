@@ -32,7 +32,7 @@ uint8_t sys = 0;
 uint16_t cmd = 0;
 char resp_buf[160];
 
-volatile uint16_t s_distance = 0;
+volatile uint16_t sonar_data[2];
 
 void init_comp_relays()
 {
@@ -138,8 +138,8 @@ void setup()
 	TIMSK2 |= (1 << OCIE2A);  // enable timer compare interrupt
 
 	DDRA |= _BV(M1AIN) | _BV(M1BIN) | _BV(M1PWM);
-	DDRB |= _BV(LFTSTSWPIN) | _BV(RGTSTSWPIN) | _BV(TRIG_PIN);
-	DDRB &= ~_BV(ECHO_PIN);
+	DDRB |= _BV(LFTSTSWPIN) | _BV(RGTSTSWPIN) | _BV(TRIG_1_PIN);
+	DDRB &= ~_BV(ECHO_1_PIN);
 	DDRC |= _BV(M2AIN) | _BV(M2BIN) | _BV(M2PWM);
 	// DDRL |= _BV(S0TRI) | _BV(S1TRI) | _BV(S2TRI) | _BV(S3TRI) | _BV(RHUP) | _BV(LHUP) | _BV(RHDOWN) | _BV(LHDOWN);
 	// DDRG |= _BV(RIGHTHAND) | _BV(LEFTHAND);
@@ -165,8 +165,9 @@ void setup()
 
 void loop()
 {
-	Serial.println(s_distance);
-	delay(500);
+	Serial.println(sonar_data[0]);
+	Serial.println(sonar_data[1]);
+	delay(100);
 	// if (Serial.available())
 	// {	
 	// 	cmd = Serial.parseInt();
@@ -225,7 +226,7 @@ ISR(TIMER2_COMPA_vect)
 {
 	TCNT2 = 0;
   	time++;
-	s_distance = sonarWork();
+	sonarWork(sonar_data);
 	// handsWork();
 	// legsWork();
 }

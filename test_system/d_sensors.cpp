@@ -18,9 +18,14 @@ volatile uint16_t sonar_distance = 0;
 
 volatile uint8_t sonar_state = IDLE;
 volatile uint8_t trig_state = IDLE; 
-volatile uint8_t echo_state = IDLE; 
+volatile uint8_t echo_state = IDLE;
 
-uint16_t sonarWork()
+uint8_t echo_pins[6] = {ECHO_1_PIN, ECHO_1_PIN};
+uint8_t trig_pins[6] = {TRIG_1_PIN, TRIG_1_PIN};
+
+uint8_t i = 0;
+
+volatile uint16_t * sonarWork(uint16_t res[])
 {
   switch (sonar_state)
   {
@@ -39,7 +44,7 @@ uint16_t sonarWork()
           break;
         }
         case FRUP: {
-          PORTB |= _BV(TRIG_PIN);
+          PORTB |= _BV(trig_pins[i]);
           ptme = time;
           trig_state = FRDN;
           break;
@@ -47,7 +52,7 @@ uint16_t sonarWork()
         case FRDN: {
           if (time - ptme > 0)
           {
-            PORTB &= ~_BV(TRIG_PIN);
+            PORTB &= ~_BV(trig_pins[i]);
             trig_state = IDLE;
             sonar_state = ECHO;
             echo_state = IDLE;
@@ -61,7 +66,7 @@ uint16_t sonarWork()
       switch (echo_state)
       {
         case IDLE: {
-          if (PINB & _BV(ECHO_PIN))
+          if (PINB & _BV(echo_pins[i]))
           {
             ptme = time;
             echo_state = FRUP;
@@ -69,7 +74,7 @@ uint16_t sonarWork()
           break;
         }
         case FRUP: {
-          if (! (PINB & _BV(ECHO_PIN)))
+          if (! (PINB & _BV(echo_pins[i])))
           {
             sonar_distance = (time - ptme) / K;
             echo_state = FRDN;
@@ -79,13 +84,17 @@ uint16_t sonarWork()
         case FRDN: {
           echo_state = IDLE;
           sonar_state = IDLE;
+          res[0] = i;
+          res[1] = sonar_distance;
+          if (i++ > sizeof(echo_pins)) i = 0;
           break;
         }
       }
       break;
     }
   }
-  return sonar_distance;
+
+  return res;
 }
 
 // void setup() 

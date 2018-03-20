@@ -30,5 +30,7 @@
 #define RH_NOT_LIMIT (PINB & _BV(RGTSTSWPIN)) == 1
 #define RH_LIMIT !RH_NOT_LIMIT
 
-#define TRIG_PIN PB0
-#define ECHO_PIN PB1
+#define TRIG_1_PIN PB0 //53
+#define ECHO_1_PIN PB1 //52
+#define TRIG_2_PIN PB3 //50
+#define ECHO_2_PIN PB2 //51
