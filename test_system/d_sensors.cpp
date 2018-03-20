@@ -10,13 +10,6 @@
 #define FRUP 4
 #define FRDN 5
 
-// #define R1 digitalWrite(10,1)
-// #define G1 digitalWrite(11,1)
-// #define B1 digitalWrite(12,1)
-// #define R0 digitalWrite(10,0)
-// #define G0 digitalWrite(11,0)
-// #define B0 digitalWrite(12,0)
-
 #define K 4
 
 volatile uint32_t time = 0;
@@ -26,20 +19,6 @@ volatile uint16_t sonar_distance = 0;
 volatile uint8_t sonar_state = IDLE;
 volatile uint8_t trig_state = IDLE; 
 volatile uint8_t echo_state = IDLE; 
-
-/**/
-// uint16_t pos =  600;
-// uint16_t MIN =    0; 
-// uint16_t MAX =  180; 
-// int8_t dp = -1;
-
-// uint32_t pos_ptme = 0;
-
-// uint32_t avg = 0;
-// uint16_t cnt = 0;
-/**/
-
-char out[100];
 
 uint16_t sonarWork()
 {

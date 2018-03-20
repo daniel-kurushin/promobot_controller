@@ -224,7 +224,6 @@ ISR(TIMER1_COMPA_vect)
 ISR(TIMER2_COMPA_vect)
 {
 	TCNT2 = 0;
-	// digitalWrite(13, !digitalRead(13));
   	time++;
 	s_distance = sonarWork();
 	// handsWork();
