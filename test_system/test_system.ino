@@ -22,6 +22,13 @@ char cz[10] = "";
 #define CMD_STAT_ERR 0
 #define CMD_STAT_OK 1
 
+typedef struct sonar_results_t {
+	int distance;
+	int accuracy;
+};
+
+volatile sonar_results_t sonar_results[SONAR_COUNT];
+
 /**/
 uint32_t sys_state = 0;
 
@@ -32,7 +39,7 @@ uint8_t sys = 0;
 uint16_t cmd = 0;
 char resp_buf[160];
 
-volatile uint16_t sonar_data[2];
+volatile uint16_t sonar_data[SONAR_DATA_LEN];
 
 void init_comp_relays()
 {
@@ -165,9 +172,9 @@ void setup()
 
 void loop()
 {
-	Serial.println(sonar_data[0]);
-	Serial.println(sonar_data[1]);
-	delay(100);
+	// Serial.print(sonar_data[0]);
+	// Serial.println(sonar_data[1]);
+	// delay(100);
 	// if (Serial.available())
 	// {	
 	// 	cmd = Serial.parseInt();
@@ -226,7 +233,8 @@ ISR(TIMER2_COMPA_vect)
 {
 	TCNT2 = 0;
   	time++;
-	sonarWork(sonar_data);
+
+    sonarWork(sonar_data);
 	// handsWork();
 	// legsWork();
 }

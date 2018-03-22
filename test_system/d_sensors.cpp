@@ -11,6 +11,7 @@
 #define FRDN 5
 
 #define K 4
+#define accuracy 0
 
 volatile uint32_t time = 0;
 volatile uint32_t ptme = 0;
@@ -20,12 +21,32 @@ volatile uint8_t sonar_state = IDLE;
 volatile uint8_t trig_state = IDLE; 
 volatile uint8_t echo_state = IDLE;
 
-uint8_t echo_pins[6] = {ECHO_1_PIN, ECHO_1_PIN};
-uint8_t trig_pins[6] = {TRIG_1_PIN, TRIG_1_PIN};
+uint8_t echo_pins[SONAR_COUNT] = {ECHO_1_PIN, ECHO_1_PIN};
+uint8_t trig_pins[SONAR_COUNT] = {TRIG_1_PIN, TRIG_1_PIN};
 
 uint8_t i = 0;
 
-volatile uint16_t * sonarWork(uint16_t res[])
+void processBottomDSs(char *resp_buf, uint8_t cmd)
+{
+  switch (cmd)
+  {
+    case 90: // get state
+      last_cmd = cmd;
+      for (int i = 0; i < sizeof(echo_pins)-1; ++i)
+      {
+
+      }
+      sprintf(resp_buf, "last_cmd: %d, avg_pwm: %d, state: %d"
+                         last_cmd,     avg_pwm,     state);
+      break;
+    case 91:
+      break;
+    case 92:
+      break;
+  }
+}
+
+void sonarWork(uint16_t res[])
 {
   switch (sonar_state)
   {
@@ -84,17 +105,18 @@ volatile uint16_t * sonarWork(uint16_t res[])
         case FRDN: {
           echo_state = IDLE;
           sonar_state = IDLE;
-          res[0] = i;
+          res[0] = i; // sonar number
           res[1] = sonar_distance;
-          if (i++ > sizeof(echo_pins)) i = 0;
+          res[2] = accuracy;
+          if (++i > sizeof(echo_pins)-1) {
+            i = 0;
+          }
           break;
         }
       }
       break;
     }
   }
-
-  return res;
 }
 
 // void setup() 
