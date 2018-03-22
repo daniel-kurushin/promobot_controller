@@ -11,7 +11,7 @@
 #define FRDN 5
 
 #define K 4
-#define accuracy 0
+#define ACCURACY_DEFAULT 0
 
 volatile uint32_t time = 0;
 volatile uint32_t ptme = 0;
@@ -24,20 +24,35 @@ volatile uint8_t echo_state = IDLE;
 uint8_t echo_pins[SONAR_COUNT] = {ECHO_1_PIN, ECHO_1_PIN};
 uint8_t trig_pins[SONAR_COUNT] = {TRIG_1_PIN, TRIG_1_PIN};
 
+typedef struct sonar_results_t {
+  int distance;
+  int accuracy;
+};
+
+volatile sonar_results_t sonar_results[SONAR_COUNT];
+
 uint8_t i = 0;
 
 void processBottomDSs(char *resp_buf, uint8_t cmd)
 {
+  uint8_t k = 0;
+  char buf[7];
   switch (cmd)
   {
     case 90: // get state
       last_cmd = cmd;
-      for (int i = 0; i < sizeof(echo_pins)-1; ++i)
+      k = 13;
+      // memset(buf, '\0');
+      sprintf(resp_buf, "last_cmd: %d", last_cmd);
+      for (uint8_t i = 0; i < sizeof(echo_pins)-1; ++i)
       {
-
+        sprintf(buf, "%d,%d;", sonar_results[i].distance, sonar_results[i].accuracy);
+        for (uint8_t j = 0; j < 7; j++)
+        {
+          resp_buf[k] = buf[j];
+        }
+        k++;
       }
-      sprintf(resp_buf, "last_cmd: %d, avg_pwm: %d, state: %d"
-                         last_cmd,     avg_pwm,     state);
       break;
     case 91:
       break;
@@ -46,7 +61,7 @@ void processBottomDSs(char *resp_buf, uint8_t cmd)
   }
 }
 
-void sonarWork(uint16_t res[])
+void sonarWork()
 {
   switch (sonar_state)
   {
@@ -105,9 +120,8 @@ void sonarWork(uint16_t res[])
         case FRDN: {
           echo_state = IDLE;
           sonar_state = IDLE;
-          res[0] = i; // sonar number
-          res[1] = sonar_distance;
-          res[2] = accuracy;
+          sonar_results[i].distance = sonar_distance; // sonar number
+          sonar_results[i].accuracy = ACCURACY_DEFAULT;
           if (++i > sizeof(echo_pins)-1) {
             i = 0;
           }

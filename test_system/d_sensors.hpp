@@ -1,7 +1,7 @@
 #include <stdint.h>
 
 /* This file was automatically generated.  Do not edit! */
-void sonarWork(uint16_t res[]);
+void sonarWork();
 extern uint8_t i;
 extern uint8_t trig_pins[2];
 extern uint8_t echo_pins[2];

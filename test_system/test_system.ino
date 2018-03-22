@@ -22,13 +22,6 @@ char cz[10] = "";
 #define CMD_STAT_ERR 0
 #define CMD_STAT_OK 1
 
-typedef struct sonar_results_t {
-	int distance;
-	int accuracy;
-};
-
-volatile sonar_results_t sonar_results[SONAR_COUNT];
-
 /**/
 uint32_t sys_state = 0;
 
@@ -234,7 +227,9 @@ ISR(TIMER2_COMPA_vect)
 	TCNT2 = 0;
   	time++;
 
-    sonarWork(sonar_data);
+    sonarWork();
+    // sonar_results[sonar_data[0]]->accuracy = sonar_data[2];
+    // sonar_results[sonar_data[0]]->distance = sonar_data[1];
 	// handsWork();
 	// legsWork();
 }

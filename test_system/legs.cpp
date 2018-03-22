@@ -24,7 +24,7 @@ int trg_distance = 0;
 int course = 0;
 int distance = 0;
 int direction = 0; // 0 (forward) or 1 (back) TODO: make constants
-uint8_t last_cmd = 0;
+
 uint8_t state = 0; // 1 (err) or 0 (ok) TODO: make constants
 int avg_pwm = 2;
 
