@@ -19,6 +19,7 @@ uint16_t tme = 0;
 uint8_t lft_pwm = 0;
 uint8_t rgt_pwm = 0;
 
+uint8_t legs_last_cmd = 0;
 int trg_course = 0;
 int trg_distance = 0;
 int course = 0;
@@ -40,31 +41,31 @@ void processLegs(char *resp_buf, uint8_t cmd)
 			trg_course = Serial.parseInt();
 			trg_distance = Serial.parseInt();
 			direction = 0;
-			last_cmd = cmd;
+			legs_last_cmd = cmd;
 			if (0) // error state
 			{
 				state = 1;
 			}
-			sprintf(resp_buf, "last_cmd: %d, state: %d", last_cmd, state);
+			sprintf(resp_buf, "legs_last_cmd: %d, state: %d", legs_last_cmd, state);
 			break;
 		case 20: // get state
 			// TODO: compute distance, course 
 			course = 0;
 			distance = 0;
-			last_cmd = cmd;
-			sprintf(resp_buf, "last_cmd: %d, avg_pwm: %d, state: %d, direction: %d, trg_course: %d, course: %d, tgr_distance: %d, distance: %d, lft_pwm: %d, rgt_pwm: %d",
-			                   last_cmd,     avg_pwm,     state,     direction,     trg_course,     course,     trg_distance,     distance,     lft_pwm,     rgt_pwm);
+			legs_last_cmd = cmd;
+			sprintf(resp_buf, "legs_last_cmd: %d, avg_pwm: %d, state: %d, direction: %d, trg_course: %d, course: %d, tgr_distance: %d, distance: %d, lft_pwm: %d, rgt_pwm: %d",
+			                   legs_last_cmd,     avg_pwm,     state,     direction,     trg_course,     course,     trg_distance,     distance,     lft_pwm,     rgt_pwm);
 			break;
 		case 22:
 			trg_course = Serial.parseInt();
 			trg_distance = Serial.parseInt();
 			direction = 1;
-			last_cmd = cmd;
+			legs_last_cmd = cmd;
 			if (0) // error state
 			{
 				state = 1;
 			}
-			sprintf(resp_buf, "last_cmd: %d, state: %d", last_cmd, state);
+			sprintf(resp_buf, "legs_last_cmd: %d, state: %d", legs_last_cmd, state);
 			break;
 		case 23:
 			avg_pwm = 0;
@@ -72,8 +73,8 @@ void processLegs(char *resp_buf, uint8_t cmd)
 			{
 				state = 1;
 			}
-			last_cmd = cmd;
-			sprintf(resp_buf, "last_cmd: %d, state: %d, avg_pwm: %d", last_cmd, state, avg_pwm);
+			legs_last_cmd = cmd;
+			sprintf(resp_buf, "legs_last_cmd: %d, state: %d, avg_pwm: %d", legs_last_cmd, state, avg_pwm);
 			break;
 	}
 }
@@ -83,7 +84,7 @@ void legsWork()
 	float spd = avg_pwm * 1.3; // 1.3 depends on wheels radius
 	int dt = 1;
 	trg_distance -= spd * dt;
-	if (trg_distance > 10 && (last_cmd == 21 | last_cmd == 22)) // 10 should be constant
+	if (trg_distance > 10 && (legs_last_cmd == 21 | legs_last_cmd == 22)) // 10 should be constant
 	{
 		avg_pwm = 2;
 	} else {

@@ -37,5 +37,3 @@
 #define ECHO_1_PIN PB1 //52
 #define TRIG_2_PIN PB3 //50
 #define ECHO_2_PIN PB2 //51
-
-uint8_t last_cmd;

@@ -21,6 +21,8 @@ volatile uint8_t sonar_state = IDLE;
 volatile uint8_t trig_state = IDLE; 
 volatile uint8_t echo_state = IDLE;
 
+uint8_t sensors_last_cmd = 0;
+
 uint8_t echo_pins[SONAR_COUNT] = {ECHO_1_PIN, ECHO_1_PIN};
 uint8_t trig_pins[SONAR_COUNT] = {TRIG_1_PIN, TRIG_1_PIN};
 
@@ -40,18 +42,20 @@ void processBottomDSs(char *resp_buf, uint8_t cmd)
   switch (cmd)
   {
     case 90: // get state
-      last_cmd = cmd;
-      k = 13;
-      // memset(buf, '\0');
-      sprintf(resp_buf, "last_cmd: %d", last_cmd);
-      for (uint8_t i = 0; i < sizeof(echo_pins)-1; ++i)
+      sensors_last_cmd = cmd;
+      k = 0;
+      memset(resp_buf, sizeof(resp_buf)-1, ' ');
+      sprintf(resp_buf, "last_cmd: %d ", sensors_last_cmd);
+      for (uint8_t i = 0; i < SONAR_COUNT; ++i)
       {
-        sprintf(buf, "%d,%d;", sonar_results[i].distance, sonar_results[i].accuracy);
-        for (uint8_t j = 0; j < 7; j++)
+        // Serial.println(sonar_results[i].distance);
+        sprintf(buf, "%d %d ", sonar_results[i].distance, sonar_results[i].accuracy);
+        // Serial.println(buf);
+        for (uint8_t j = 0; j < 6; j++)
         {
           resp_buf[k] = buf[j];
+          k++;
         }
-        k++;
       }
       break;
     case 91:
