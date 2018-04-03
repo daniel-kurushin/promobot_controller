@@ -151,6 +151,7 @@ void loop()
 ISR(TIMER1_COMPA_vect)
 {
 	TCNT1 = 0;
+	// Serial.println("ISR1");
 	// handsWork();
 	// legsWork();
 }
