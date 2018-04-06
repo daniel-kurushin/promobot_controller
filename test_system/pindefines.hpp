@@ -1,7 +1,7 @@
 #include <stdint.h>
 #define COMP_PWR_REL_DDR DDRB
 #define COMP_PWR_BTN_DDR DDRB
-#define COMP_PWR_REL_PIN PB7
+#define COMP_PWR_REL_PIN PB7 //TODO: change pin to PH5 (8)
 #define COMP_PWR_BTN_PIN PB6
 #define COMP_PWR_REL_PORT PORTB
 #define COMP_PWR_BTN_PORT PORTB
@@ -37,3 +37,5 @@
 #define ECHO_1_PIN PB1 //52
 #define TRIG_2_PIN PB3 //50
 #define ECHO_2_PIN PB2 //51
+
+#define TIMER_1_SECOND 5120

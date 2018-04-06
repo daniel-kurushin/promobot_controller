@@ -1,6 +1,7 @@
 #include "pindefines.hpp"
 #include "Arduino.h"
 #include "legs.hpp"
+#include "lamps.hpp"
 #include "hands.hpp"
 #include "computer.hpp"
 #include "d_sensors.hpp"
@@ -57,7 +58,7 @@ void setup()
 
 	OCR1A = 3125;            // compare match register 16MHz/256/2Hz
 	TCCR1B |= (1 << WGM12);   // CTC mode
-	TCCR1B |= (1 << CS10);    // 1024 prescaler
+	TCCR1B |= (1 << CS10);    // no prescaler
 	TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
 
 	TCCR2A = 0;
@@ -75,6 +76,8 @@ void setup()
 	DDRC |= _BV(M2AIN) | _BV(M2BIN) | _BV(M2PWM);
 	// DDRL |= _BV(S0TRI) | _BV(S1TRI) | _BV(S2TRI) | _BV(S3TRI) | _BV(RHUP) | _BV(LHUP) | _BV(RHDOWN) | _BV(LHDOWN);
 	// DDRG |= _BV(RIGHTHAND) | _BV(LEFTHAND);
+
+	COMP_PWR_BTN_PORT |= _BV(COMP_PWR_BTN_PIN); // turn off comp btn relay
 
 	//ADC setup
 	ADCSRA |= (1 << ADPS2)
@@ -100,7 +103,6 @@ void loop()
 	// Serial.print(sonar_data[0]);
 	// Serial.println(sonar_data[1]);
 	// delay(100);
-	computerWork();
 	if (Serial.available())
 	{	
 		cmd = Serial.parseInt();
@@ -119,9 +121,9 @@ void loop()
 			// case 4:
 			// 	processPalms(cmd);
 			// 	break;
-			// case 5:
-			// 	processComp(cmd);
-			// 	break;
+			case 5:
+				processComp(resp_buf, cmd);
+				break;
 			// case 6:
 			// 	processRedLamps(cmd);
 			// 	break;
@@ -154,6 +156,8 @@ ISR(TIMER1_COMPA_vect)
 	// Serial.println("ISR1");
 	// handsWork();
 	// legsWork();
+	computerWork();
+	lampsWork();
 }
 
 ISR(TIMER2_COMPA_vect)
