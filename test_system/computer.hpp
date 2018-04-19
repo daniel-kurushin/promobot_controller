@@ -13,5 +13,4 @@ void lamp_wht_on();
 void lamps_init();
 extern uint8_t sys;
 volatile extern uint32_t comp_boot_time;
-extern uint16_t hands_state;
 volatile extern uint16_t computer_state;

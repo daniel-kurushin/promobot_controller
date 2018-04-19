@@ -27,6 +27,19 @@ void init_comp_relays()
 {
 	COMP_PWR_REL_DDR |= _BV(COMP_PWR_REL_PIN);
 	COMP_PWR_BTN_DDR |= _BV(COMP_PWR_BTN_PIN);
+	COMP_PWR_REL_PORT |= _BV(COMP_PWR_REL_PIN); // turn off comp pwr relay
+}
+
+void rs485_trsm_en()
+{
+  PORTF |= _BV(RS485_TRSM);
+  PORTF &= ~_BV(RS485_RECV);
+}
+
+void rs485_recv_en()
+{
+  PORTF &= ~_BV(RS485_TRSM);
+  PORTF |= _BV(RS485_RECV);
 }
 
 void setup()
@@ -74,6 +87,8 @@ void setup()
 	DDRB |= _BV(LFTSTSWPIN) | _BV(RGTSTSWPIN) | _BV(TRIG_1_PIN);
 	DDRB &= ~_BV(ECHO_1_PIN);
 	DDRC |= _BV(M2AIN) | _BV(M2BIN) | _BV(M2PWM);
+	DDRF |= _BV(RS485_TRSM);
+	DDRF |= _BV(RS485_RECV);
 	// DDRL |= _BV(S0TRI) | _BV(S1TRI) | _BV(S2TRI) | _BV(S3TRI) | _BV(RHUP) | _BV(LHUP) | _BV(RHDOWN) | _BV(LHDOWN);
 	// DDRG |= _BV(RIGHTHAND) | _BV(LEFTHAND);
 
@@ -103,6 +118,7 @@ void loop()
 	// Serial.print(sonar_data[0]);
 	// Serial.println(sonar_data[1]);
 	// delay(100);
+	// rs485_recv_en();
 	if (Serial.available())
 	{	
 		cmd = Serial.parseInt();
@@ -143,6 +159,7 @@ void loop()
 			// 	processGyro(cmd);
 			// 	break;
 		}
+		// rs485_trsm_en();
 		Serial.println(resp_buf);
 	} else {
 		legsWork();
@@ -158,6 +175,7 @@ ISR(TIMER1_COMPA_vect)
 	// legsWork();
 	computerWork();
 	lampsWork();
+	handsWork();
 }
 
 ISR(TIMER2_COMPA_vect)

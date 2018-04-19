@@ -290,8 +290,8 @@ void rigthHandWork()
 		case HAND_STATE_INIT:
 			RH_Time = 0;
 			RH_State = HAND_STATE_GO_DOWN;
-		break;
-			case HAND_STATE_GO_DOWN:
+			break;
+		case HAND_STATE_GO_DOWN:
 			old_RH_Command = RIGHTHANDDOWN;
 			RH_GO_DOWN();
 			if (RH_LIMIT || (++RH_Time > 1000)) RH_State = HAND_STATE_STOP;
@@ -352,8 +352,8 @@ void leftHandWork()
 			hands_pwm = 0;
 			LH_Time = 0;
 			LH_State = HAND_STATE_GO_DOWN;
-		break;
-			case HAND_STATE_GO_DOWN:
+			break;
+		case HAND_STATE_GO_DOWN:
 			hands_pwm = HANDS_PWM_DN;
 			old_LH_Command = LEFTHANDDOWN;
 			LH_GO_DOWN();

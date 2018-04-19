@@ -11,7 +11,7 @@
 // #define COMP_ERROR_BLINK_ON 0x02
 // #define COMP_ERROR_BLINK_OFF 0x03
 #define STATE_IDLE 0x10
-#define COMP_WAIT_FOR_PWR TIMER_1_SECOND * 4
+#define COMP_WAIT_FOR_PWR TIMER_1_SECOND * 6
 
 #define MAX_BOOT_TIME 1000*10*20 //10 minutes
 #define COMP_LOADED_SIGNAL 51
@@ -21,7 +21,6 @@
 
 
 volatile uint16_t computer_state = COMP_SWITCHED_OFF;
-uint16_t hands_state = 0x00;
 volatile uint32_t comp_boot_time = 0;
 uint32_t comp_error_blink_time = 0;
 volatile uint8_t comp_last_cmd = 0;
