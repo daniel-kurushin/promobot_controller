@@ -17,6 +17,7 @@ uint8_t sys = 0;
 
 volatile uint16_t sonar_data[SONAR_DATA_LEN];
 
+// init relays
 void lamps_init()
 {
 	LAMP_WHT_DDR |= _BV(LAMP_WHT_PIN);
@@ -30,6 +31,27 @@ void init_comp_relays()
 	COMP_PWR_REL_PORT |= _BV(COMP_PWR_REL_PIN); // turn off comp pwr relay
 }
 
+void init_motors_relays()
+{
+	MOTORS_REL_PWR_DDR |= _BV(MOTORS_REL_PWR_PIN);
+}
+
+void init_5v_relays()
+{
+	PWR_5V_DDR |= _BV(PWR_5V_PIN);
+}
+
+void bus_5v_on()
+{
+	PWR_5V_PORT &= ~_BV(PWR_5V_PIN);
+}
+
+void motors_relays_on()
+{
+	MOTORS_REL_PWR_PORT |= _BV(MOTORS_REL_PWR_PIN);
+}
+
+// rs485
 void rs485_trsm_en()
 {
   PORTF |= _BV(RS485_TRSM);

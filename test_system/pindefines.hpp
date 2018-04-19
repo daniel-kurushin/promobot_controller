@@ -6,9 +6,19 @@
 #define COMP_PWR_REL_PORT PORTH
 #define COMP_PWR_BTN_PORT PORTB
 
-#define LAMP_RED_PORT PORTH
-#define LAMP_RED_DDR DDRH
-#define LAMP_RED_PIN PH6
+//9 - wht lamps, 10 - 5v, 11 - motors
+
+#define LAMP_RED_PORT PORTB // TODO: make a connection to relays of white lamps
+// #define LAMP_RED_DDR DDRB
+// #define LAMP_RED_PIN PB4
+
+#define PWR_5V_PORT PORTB
+#define PWR_5V_DDR DDRB
+#define PWR_5V_PIN PB4
+
+#define MOTORS_REL_PWR_PORT PORTB
+#define MOTORS_REL_PWR_DDR DDRB
+#define MOTORS_REL_PWR_PIN PB5
 
 #define LAMP_WHT_PORT PORTH
 #define LAMP_WHT_DDR DDRH
