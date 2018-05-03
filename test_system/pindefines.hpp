@@ -8,9 +8,9 @@
 
 //9 - wht lamps, 10 - 5v, 11 - motors
 
-#define LAMP_RED_PORT PORTB // TODO: make a connection to relays of white lamps
-// #define LAMP_RED_DDR DDRB
-// #define LAMP_RED_PIN PB4
+#define LAMP_RED_PORT PORTE // TODO: make a connection to relays of white lamps
+#define LAMP_RED_DDR DDRE
+#define LAMP_RED_PIN PE5
 
 #define PWR_5V_PORT PORTB
 #define PWR_5V_DDR DDRB
@@ -32,13 +32,13 @@
 #define M2BIN PC3 // 34 -> 6
 #define M2PWM PC2 // 35 -> 5
 
-#define LFTSTSWPIN PH4 //was PB0 PB1
-#define RGTSTSWPIN PH3
+#define RGTSTSWPIN PH4 //was PB0 PB1 -> 7
+#define LFTSTSWPIN PH3 // -> 6
 
-#define LH_NOT_LIMIT (PINH & _BV(LFTSTSWPIN)) == 1
-#define LH_LIMIT !LH_NOT_LIMIT
-#define RH_NOT_LIMIT (PINH & _BV(RGTSTSWPIN)) == 1
-#define RH_LIMIT !RH_NOT_LIMIT
+#define RH_LIMIT ((PINH & _BV(RGTSTSWPIN)) != 0)
+#define RH_NOT_LIMIT !RH_LIMIT
+#define LH_LIMIT ((PINH & _BV(LFTSTSWPIN)) != 0)
+#define LH_NOT_LIMIT !LH_LIMIT
 
 #define SONAR_DATA_LEN 3
 #define SONAR_COUNT 2
@@ -55,15 +55,6 @@
 #define RS485_RECV PF2
 
 #define TIMER_1_SECOND 5120
-
-// hands
-#define LFTSTSWPIN PB0
-#define RGTSTSWPIN PB1
-
-#define LH_NOT_LIMIT (PINB & _BV(LFTSTSWPIN)) == 1
-#define LH_LIMIT !LH_NOT_LIMIT
-#define RH_NOT_LIMIT (PINB & _BV(RGTSTSWPIN)) == 1
-#define RH_LIMIT !RH_NOT_LIMIT
 
 //#define RH_GO_UP PORTL |= _BV(RHUP)
 //#define RH_GO_DOWN PORTL |= _BV(RHDOWN)

@@ -7,7 +7,7 @@ volatile State_t LH_State, RH_State = HAND_STATE_INIT;
 volatile uint32_t LH_Command, old_LH_Command, RH_Command, old_RH_Command = 0;
 volatile uint16_t LH_Time, RH_Time = 0;
 volatile State_t old_LH_State, old_RH_State = NULL;
-volatile uint8_t hands_pwm = 0;
+volatile uint8_t hands_pwm = 30;
 
 int lft_hand_limit = 0;
 int rgt_hand_limit = 0;
@@ -134,51 +134,69 @@ void processHands(char *resp_buf, int cmd)
 			sprintf(resp_buf, "hands_last_cmd: %d, state: %d", hands_last_cmd, hands_state);
 			break;
 	}
+	Serial.println(RH_Command);
 }
 
+int cnt = 0;
 void rigthHandWork()
 {
+	// Serial.print(" RH: ");
+	// Serial.print(RH_State);
+	// Serial.println(RH_LIMIT);
+	// if (cnt++ > 10)
+	// {
+		// Serial.println();
+		// cnt = 0;
+	// }
 	switch (RH_State)
 	{
-		case HAND_STATE_INIT:
+		case HAND_STATE_INIT: // 0
+			hands_pwm = 0;
 			RH_Time = 0;
 			RH_State = HAND_STATE_GO_DOWN;
-		break;
-			case HAND_STATE_GO_DOWN:
+			break;
+		case HAND_STATE_GO_DOWN: // 1
+			hands_pwm = HANDS_PWM_DN;
 			old_RH_Command = RIGHTHANDDOWN;
 			RH_GO_DOWN();
 			if (RH_LIMIT || (++RH_Time > 1000)) RH_State = HAND_STATE_STOP;
 			break;
-		case HAND_STATE_BEGIN_SPIN_DOWN:
+		case HAND_STATE_BEGIN_SPIN_DOWN: // 2
+			hands_pwm = HANDS_PWM_DN;
 			RH_GO_DOWN();
 			if (++RH_Time > 10000) RH_State = HAND_STATE_SPIN_FAIL;
 			if (!RH_LIMIT & (++RH_Time > 10)) RH_State = HAND_STATE_SPIN_DOWN;
 			break;
-		case HAND_STATE_SPIN_DOWN:
+		case HAND_STATE_SPIN_DOWN: // 3
+			hands_pwm = HANDS_PWM_DN;
 			RH_GO_DOWN();
 			if (++RH_Time > 10000) RH_State = HAND_STATE_SPIN_FAIL;
 			if (RH_LIMIT) RH_State = HAND_STATE_STOP;
 			break;
-		case HAND_STATE_BEGIN_SPIN_UP:
+		case HAND_STATE_BEGIN_SPIN_UP: // 4
+			hands_pwm = HANDS_PWM_UP;
 			RH_GO_UP();
 			if (++RH_Time > 10000) RH_State = HAND_STATE_SPIN_FAIL;
-			if (!RH_LIMIT & (++RH_Time > 10)) RH_State = HAND_STATE_SPIN_UP;
+			if (RH_NOT_LIMIT & (++RH_Time > 10)) RH_State = HAND_STATE_SPIN_UP;
 			break;
-		case HAND_STATE_SPIN_UP:
+		case HAND_STATE_SPIN_UP: // 5
+			hands_pwm = HANDS_PWM_UP;
 			RH_GO_UP();
 			if (++RH_Time > 10000) RH_State = HAND_STATE_SPIN_FAIL;
 			if (RH_LIMIT) RH_State = HAND_STATE_STOP;
 			break;
-		case HAND_STATE_STOP:
+		case HAND_STATE_STOP: // 6
+			hands_pwm = 0;
 			RH_STOP;
 			RH_Time = 0;
 			RH_State = HAND_STATE_IDLE;
 			break;
-		case HAND_STATE_SPIN_FAIL:
+		case HAND_STATE_SPIN_FAIL: // 7
+			hands_pwm = 0;
 			RH_STOP;
 			RH_Time = 0;
 			break;
-		case HAND_STATE_IDLE:
+		case HAND_STATE_IDLE: // 8
 			if ((RH_IS_NEW_CMD) & (RH_Command == RIGHTHANDUP))
 			{
 				RH_State = HAND_STATE_BEGIN_SPIN_UP;
@@ -199,14 +217,18 @@ void rigthHandWork()
 
 void leftHandWork()
 {
+	// Serial.print("LH: ");
+	// Serial.println(LH_LIMIT);
+	// Serial.print(" LH: ");
+	// Serial.println(LH_Time);
 	switch (LH_State)
 	{
 		case HAND_STATE_INIT:
 			hands_pwm = 0;
 			LH_Time = 0;
 			LH_State = HAND_STATE_GO_DOWN;
-		break;
-			case HAND_STATE_GO_DOWN:
+			break;
+		case HAND_STATE_GO_DOWN:
 			hands_pwm = HANDS_PWM_DN;
 			old_LH_Command = LEFTHANDDOWN;
 			LH_GO_DOWN();

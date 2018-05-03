@@ -36,6 +36,11 @@ void init_motors_relays()
 	MOTORS_REL_PWR_DDR |= _BV(MOTORS_REL_PWR_PIN);
 }
 
+void motors_relays_on()
+{
+	MOTORS_REL_PWR_PORT &= ~_BV(MOTORS_REL_PWR_PIN);
+}
+
 void init_5v_relays()
 {
 	PWR_5V_DDR |= _BV(PWR_5V_PIN);
@@ -44,11 +49,6 @@ void init_5v_relays()
 void bus_5v_on()
 {
 	PWR_5V_PORT &= ~_BV(PWR_5V_PIN);
-}
-
-void motors_relays_on()
-{
-	MOTORS_REL_PWR_PORT |= _BV(MOTORS_REL_PWR_PIN);
 }
 
 // rs485
@@ -70,6 +70,10 @@ void setup()
 	Serial.setTimeout(5);
 	init_comp_relays();
   	lamps_init();
+  	init_motors_relays();
+	motors_relays_on();
+	init_5v_relays();
+	bus_5v_on();
 
   	/* moved from motor_ex.ino */
   	Wire.begin();
@@ -106,13 +110,16 @@ void setup()
 	TIMSK2 |= (1 << OCIE2A);  // enable timer compare interrupt
 
 	DDRA |= _BV(M1AIN) | _BV(M1BIN) | _BV(M1PWM);
-	DDRB |= _BV(LFTSTSWPIN) | _BV(RGTSTSWPIN) | _BV(TRIG_1_PIN);
+	DDRB |= _BV(TRIG_1_PIN);
+	DDRH &= ~_BV(LFTSTSWPIN);
+	DDRH &= ~_BV(RGTSTSWPIN);
 	DDRB &= ~_BV(ECHO_1_PIN);
 	DDRC |= _BV(M2AIN) | _BV(M2BIN) | _BV(M2PWM);
 	DDRF |= _BV(RS485_TRSM);
 	DDRF |= _BV(RS485_RECV);
-	// DDRL |= _BV(S0TRI) | _BV(S1TRI) | _BV(S2TRI) | _BV(S3TRI) | _BV(RHUP) | _BV(LHUP) | _BV(RHDOWN) | _BV(LHDOWN);
-	// DDRG |= _BV(RIGHTHAND) | _BV(LEFTHAND);
+	// DDRL |= _BV(S0TRI) | _BV(S1TRI) | _BV(S2TRI) | _BV(S3TRI);
+	DDRL |= _BV(RHUP) | _BV(LHUP) | _BV(RHDOWN) | _BV(LHDOWN);
+	DDRG |= _BV(RIGHTHAND) | _BV(LEFTHAND);
 
 	COMP_PWR_BTN_PORT |= _BV(COMP_PWR_BTN_PIN); // turn off comp btn relay
 
@@ -145,6 +152,8 @@ void loop()
 	{	
 		cmd = Serial.parseInt();
 		sys = cmd / 10;
+		Serial.println("Sys:");
+		Serial.println(sys);
 		switch(sys)
 		{
 			case 1:
@@ -185,16 +194,14 @@ void loop()
 		Serial.println(resp_buf);
 	} else {
 		legsWork();
-		handsWork();
+		// handsWork();
 	}
 }
 
 ISR(TIMER1_COMPA_vect)
 {
 	TCNT1 = 0;
-	// Serial.println("ISR1");
-	// handsWork();
-	// legsWork();
+
 	computerWork();
 	lampsWork();
 	handsWork();
@@ -206,9 +213,5 @@ ISR(TIMER2_COMPA_vect)
   	time++;
 
     sonarWork();
-    // sonar_results[sonar_data[0]]->accuracy = sonar_data[2];
-    // sonar_results[sonar_data[0]]->distance = sonar_data[1];
-	// handsWork();
-	// legsWork();
 }
 
