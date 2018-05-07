@@ -1,8 +1,11 @@
+// main
+
 #include "pindefines.hpp"
 #include "Arduino.h"
 #include "legs.hpp"
 #include "lamps.hpp"
 #include "hands.hpp"
+#include "palms.hpp"
 #include "computer.hpp"
 #include "d_sensors.hpp"
 #include <Wire.h>
@@ -165,9 +168,9 @@ void loop()
 			// case 3:
 			// 	processHead(cmd);
 			// 	break;
-			// case 4:
-			// 	processPalms(cmd);
-			// 	break;
+			case 4:
+				processPalms(resp_buf, cmd);
+				break;
 			case 5:
 				processComp(resp_buf, cmd);
 				break;

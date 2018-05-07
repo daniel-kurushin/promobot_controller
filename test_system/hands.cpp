@@ -185,6 +185,7 @@ void rigthHandWork()
 			if (++RH_Time > 10000) RH_State = HAND_STATE_SPIN_FAIL;
 			if (RH_LIMIT) RH_State = HAND_STATE_STOP;
 			break;
+			// HAND_STATE_SPIN_UP ; HAND_STATE_SPIN_FAIL ; RH_Time > 10000
 		case HAND_STATE_STOP: // 6
 			hands_pwm = 0;
 			RH_STOP;
