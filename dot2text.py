@@ -53,16 +53,13 @@ def train(text):
 # words=[('я', 1), ('поражают', 0.1), ('деревья', 0.1), ('впечатление', 0.1)]
 
 def generate_sentence(words, model):
-	phrase = ''
+	phrase = []
 	t0, t1 = '$', '$'
 	while 1:
 		t0, t1 = t1, uni_not_rand(words=words, seq=model[t0, t1])
 		if t1 == '$': break
-		if t1 in ('.!?,;:') or t0 == '$':
-			phrase += t1
-		else:
-			phrase += ' ' + t1
-	return (phrase.capitalize(), words)
+		phrase += [t1]
+	return phrase
 
 def uni_not_rand(words, seq):
 	max_fig = max(words.items(), key=itemgetter(1))[0]
@@ -92,7 +89,7 @@ def compare(S1,S2):
 
 	return count/max(len(S1), len(S2))
 
-def compare_sentence(words, sentence_words):
+def compare_sentence(sentence_words, words):
 	def sigma(x):
 		return (1/(1 + exp(-x)) - 0.5)*4
 
@@ -107,20 +104,6 @@ def compare_sentence(words, sentence_words):
 	return sigma(res/max(len(words), len(sentence_words)))
 
 if __name__=='__main__':
-	print(compare_sentence(('Реклама', 'завода', 'была', 'признана', 'каспаровым'),
-						   ('Реклама', 'завода', 'робототехники', 'признана', 'отказывается')))
-	print(compare_sentence(("риффин", "говорит", "правительство", "сша", "отказывается", "от", "лидерства", "в", "том"),
-						   ('Реклама', 'завода', 'была', 'признана', 'каспаровым')))
-	print(compare_sentence(('практической', 'робототехники', 'сайт', 'не', 'обновляется', 'робототехника', 'для',),
-						   ('Реклама', 'завода', 'была', 'признана', 'каспаровым')))
-	print(compare_sentence(('завода', 'Реклама', 'была', 'признана', 'каспаровым'),
-						   ('Реклама', 'завода', 'была', 'была', 'признана', 'каспаровым')))
-	print(compare_sentence(('Рbклама', 'завода', 'была', 'признана', 'каспаровым'),
-						   ('Реклама', 'завода', 'была', 'признана', 'каспаровым')))
-	# print(compare_sentence(('Реклама', 'завода', 'была', 'признана', 'каспаровым'),
-	# 					   ('Реклама', 'завода', 'была', 'признана', 'каспаровым')))
-
-	exit(0)
 
 	import pickle
 	try:
@@ -130,11 +113,31 @@ if __name__=='__main__':
 		pickle.dump(model, open('model', 'wb'))
 
 	# m = M()
-	words_of_words = [{'робототехника': 1, 'робот': 1, 'деревья': 1, 'избенка': 1}]
+
+	words_of_words_initial = [ x for x in open('hands_desc.txt').readlines() ]
+	words_of_words = []
+	for w in words_of_words_initial:
+		words_with_weight = {}
+		w_splitted = [ x for x in re.split('[; ]', w) if x ]
+		print(w_splitted)
+		for w1 in w_splitted:
+			words_with_weight.update({w1.strip(): 1})
+		words_of_words.append(words_with_weight)
+	# from pprint import pprint
+
+	# pprint(words_of_words)
+	# exit(0)
+	# words_of_words = [{'робототехника': 1, 'робот': 1, 'деревья': 1, 'избенка': 1}]
 	# print(unirand(model['$', '$']))
 	for words in words_of_words:
 		sent = generate_sentence(words, model)
-		while compare(sent, words) < 4:
+		cnt = 0
+		while compare_sentence(sent, list(words.keys())) < 0.5 and cnt < 1000:
 			sent = generate_sentence(words, model)
-			print(sent)
+			cnt += 1
+			# if sent == ['.']:
+				# print(compare_sentence(sent, list(words.keys())))
+				# exit(0)
+			
+		print(sent, words)	
 
